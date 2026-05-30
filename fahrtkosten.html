@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carpool</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#1a1612; --bg2:#221e19; --bg3:#2c2720; --bg4:#363028;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
+  --text:#f5ede4; --muted:#8a7e74; --muted2:#b5a898;
+  --coral:#e8674a; --coral2:#f0896f; --coral-bg:rgba(232,103,74,0.12); --coral-bd:rgba(232,103,74,0.28);
+  --cyan:#4ecdc4; --cyan-bg:rgba(78,205,196,0.1); --cyan-bd:rgba(78,205,196,0.25);
+  --green:#7bc67a; --green-bg:rgba(123,198,122,0.1); --green-bd:rgba(123,198,122,0.25);
+  --amber:#e8b96a; --amber-bg:rgba(232,185,106,0.1); --amber-bd:rgba(232,185,106,0.25);
+  --r:14px; --r-sm:8px;
+}
+body { background:var(--bg); color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:15px; min-height:100vh; -webkit-font-smoothing:antialiased; }
+
+nav { position:sticky; top:0; z-index:50; display:flex; background:var(--bg2); border-bottom:1px solid var(--border); padding:0 4px; }
+nav button { flex:1; padding:13px 6px; background:none; border:none; font-family:'Instrument Sans',sans-serif; font-size:12px; font-weight:500; color:var(--muted); letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; transition:color 0.15s; border-bottom:2px solid transparent; margin-bottom:-1px; }
+nav button.active { color:var(--coral); border-bottom-color:var(--coral); }
+nav button:hover:not(.active) { color:var(--muted2); }
+
+.screen { display:none; padding:20px 16px 90px; max-width:500px; margin:0 auto; }
+.screen.active { display:block; }
+.label { font-size:11px; font-weight:600; letter-spacing:0.09em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:18px; margin-bottom:12px; }
+.page-title { font-family:'Fraunces',serif; font-size:26px; font-weight:300; font-style:italic; color:var(--text); margin-bottom:20px; }
+.page-title span { color:var(--coral); }
+
+input[type=text],input[type=number] { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:var(--r-sm); padding:11px 14px; color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:15px; outline:none; transition:border-color 0.15s; -moz-appearance:textfield; }
+input::-webkit-inner-spin-button { -webkit-appearance:none; }
+input:focus { border-color:var(--border2); }
+input::placeholder { color:var(--muted); }
+.igroup { margin-bottom:10px; }
+.igroup:last-child { margin-bottom:0; }
+.igroup label { display:block; font-size:12px; color:var(--muted2); margin-bottom:5px; }
+.irow { display:flex; gap:8px; }
+.irow input { flex:1; }
+
+.btn { background:var(--bg3); border:1px solid var(--border); border-radius:var(--r-sm); color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:14px; font-weight:500; padding:11px 16px; cursor:pointer; transition:background 0.15s,border-color 0.15s; white-space:nowrap; }
+.btn:hover { background:var(--bg4); border-color:var(--border2); }
+.btn.full { width:100%; }
+.btn.coral { background:var(--coral); border-color:var(--coral); color:#fff; }
+.btn.coral:hover { background:var(--coral2); border-color:var(--coral2); }
+.btn.ghost { background:none; border-color:transparent; color:var(--muted); }
+.btn.ghost:hover { color:var(--muted2); background:var(--bg3); }
+.btn.danger { background:none; border-color:transparent; color:#c0574a; font-size:13px; padding:8px 10px; }
+.btn.danger:hover { background:rgba(192,87,74,0.1); }
+.btn.maps-btn { background:var(--cyan-bg); border-color:var(--cyan-bd); color:var(--cyan); font-size:13px; width:100%; margin-top:10px; }
+.btn.maps-btn:hover { background:rgba(78,205,196,0.16); }
+.btn.spare { background:var(--amber-bg); border-color:var(--amber-bd); color:var(--amber); }
+.btn.spare:hover { background:rgba(232,185,106,0.18); }
+.btn.still-pay { background:var(--coral-bg); border-color:var(--coral-bd); color:var(--coral2); }
+.btn.still-pay:hover { background:rgba(232,103,74,0.2); }
+
+.chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.chip { display:flex; align-items:center; gap:7px; padding:9px 16px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); cursor:pointer; font-size:14px; font-weight:500; transition:all 0.15s; user-select:none; color:var(--muted2); position:relative; }
+.chip .pip { width:6px; height:6px; border-radius:50%; background:var(--bg4); transition:background 0.15s; flex-shrink:0; }
+.chip.on { border-color:var(--coral-bd); background:var(--coral-bg); color:var(--coral2); }
+.chip.on .pip { background:var(--coral); }
+.chip.spared { border-color:var(--amber-bd); background:var(--amber-bg); color:var(--amber); }
+.chip.spared .pip { background:var(--amber); }
+.chip.came-pays { border-color:var(--cyan-bd); background:var(--cyan-bg); color:var(--cyan); }
+.chip.came-pays .pip { background:var(--cyan); }
+.chip-badge { font-size:9px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; opacity:0.75; margin-left:2px; }
+
+.preview { background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:16px 18px; margin:12px 0; display:none; }
+.preview-big { font-family:'Fraunces',serif; font-size:38px; font-weight:300; color:var(--coral); line-height:1; margin-bottom:6px; }
+.preview-sub { font-size:13px; color:var(--muted2); line-height:1.6; }
+.preview-sub b { color:var(--text); font-weight:500; }
+
+/* Route illustration */
+.route-viz { margin:14px 0 4px; cursor:pointer; }
+.route-viz svg { width:100%; overflow:visible; }
+.route-viz:hover .route-tap-hint { opacity:1; }
+.route-tap-hint { font-size:11px; color:var(--cyan); text-align:center; margin-top:6px; opacity:0.6; transition:opacity 0.2s; letter-spacing:0.04em; }
+
+.debt-row { display:flex; align-items:center; gap:12px; padding:13px 0; border-top:1px solid var(--border); }
+.debt-row:first-child { border-top:none; }
+.avatar { width:34px; height:34px; border-radius:50%; background:var(--bg4); border:1px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:var(--muted2); flex-shrink:0; }
+.debt-name { flex:1; font-size:15px; font-weight:500; }
+.debt-amount { font-family:'Fraunces',serif; font-size:20px; font-weight:400; cursor:pointer; text-decoration:underline; text-underline-offset:3px; text-decoration-color:transparent; transition:text-decoration-color 0.15s; }
+.debt-amount:hover { text-decoration-color:currentColor; }
+.debt-amount.owing { color:var(--coral); }
+.debt-amount.clear { color:var(--muted); font-size:16px; }
+.debt-amount.credit { color:var(--cyan); }
+
+.trip-row { display:flex; align-items:flex-start; justify-content:space-between; padding:13px 0; border-top:1px solid var(--border); gap:12px; }
+.trip-row:first-child { border-top:none; }
+.trip-names { font-size:14px; font-weight:500; margin-bottom:3px; }
+.trip-meta { font-size:12px; color:var(--muted); }
+.trip-amt { font-family:'Fraunces',serif; font-size:18px; font-weight:300; color:var(--amber); flex-shrink:0; }
+
+.member-row { display:flex; align-items:center; gap:10px; padding:11px 0; border-top:1px solid var(--border); }
+.member-row:first-child { border-top:none; }
+.member-info { flex:1; min-width:0; }
+.member-name-txt { font-size:14px; font-weight:500; }
+.member-addr-txt { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.preset-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.preset-chip { padding:6px 12px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); font-size:12px; color:var(--muted2); cursor:pointer; transition:all 0.15s; font-family:'Instrument Sans',sans-serif; }
+.preset-chip:hover { border-color:var(--border2); color:var(--text); }
+
+.preset-row { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-top:1px solid var(--border); font-size:14px; }
+.preset-row:first-child { border-top:none; }
+
+/* Modals */
+.overlay { display:none; position:fixed; inset:0; background:rgba(10,8,6,0.8); z-index:200; align-items:flex-end; justify-content:center; }
+.overlay.open { display:flex; }
+.modal { background:var(--bg2); border:1px solid var(--border2); border-radius:20px 20px 0 0; padding:24px 20px 40px; width:100%; max-width:500px; }
+.modal-title { font-family:'Fraunces',serif; font-size:22px; font-weight:300; margin-bottom:2px; }
+.modal-sub { font-size:13px; color:var(--muted2); margin-bottom:20px; }
+
+/* Chip config modal */
+.came-to-me-section { margin-top:14px; }
+.came-label { font-size:12px; color:var(--muted); margin-bottom:8px; letter-spacing:0.04em; text-transform:uppercase; font-weight:600; }
+.came-btns { display:flex; gap:8px; }
+.came-btns .btn { flex:1; text-align:center; font-size:13px; padding:10px 8px; }
+
+/* Pay modal */
+.pay-pills { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+.pay-pill { padding:9px 16px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); font-family:'Fraunces',serif; font-size:16px; font-weight:300; cursor:pointer; transition:all 0.15s; color:var(--muted2); }
+.pay-pill:hover,.pay-pill.sel { border-color:var(--green-bd); background:var(--green-bg); color:var(--green); }
+
+.empty { text-align:center; color:var(--muted); font-size:14px; padding:36px 0; }
+hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
+
+@keyframes flashGreen {
+  0%   { background:var(--green-bg); border-color:var(--green-bd); color:var(--green); }
+  80%  { background:var(--green-bg); border-color:var(--green-bd); color:var(--green); }
+  100% { background:var(--coral); border-color:var(--coral); color:#fff; }
+}
+.btn.saved { animation:flashGreen 1.4s forwards; }
+
+.dir-btn { display:flex; align-items:center; gap:10px; width:100%; padding:12px 18px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--r-sm); cursor:pointer; font-family:'Instrument Sans',sans-serif; font-size:14px; color:var(--muted2); margin-bottom:12px; transition:border-color 0.25s,background 0.25s,color 0.25s; user-select:none; }
+.dir-btn:hover { border-color:var(--border2); background:var(--bg3); }
+.dir-btn.back { border-color:var(--cyan-bd); background:var(--cyan-bg); color:var(--cyan); }
+.dir-endpoints { display:flex; align-items:center; gap:8px; flex:1; min-width:0; }
+.dir-node { font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dir-arrow { font-size:15px; opacity:0.5; flex-shrink:0; }
+.dir-flip-icon { margin-left:auto; font-size:20px; display:inline-block; flex-shrink:0; }
+.dir-btn.back .dir-flip-icon { color:var(--cyan); }
+
+@keyframes spinFlip { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+.flip-spinning { animation:spinFlip 0.38s cubic-bezier(0.4,0,0.2,1); }
+@keyframes labelSwap { 0%{opacity:1;transform:translateY(0)} 35%{opacity:0;transform:translateY(-5px)} 65%{opacity:0;transform:translateY(5px)} 100%{opacity:1;transform:translateY(0)} }
+.label-swapping { animation:labelSwap 0.38s ease; }
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="active" onclick="showScreen('trip',this)">Trip</button>
+  <button onclick="showScreen('debts',this)">Debts</button>
+  <button onclick="showScreen('log',this)">Log</button>
+  <button onclick="showScreen('settings',this)">Settings</button>
+</nav>
+
+<!-- TRIP -->
+<div id="s-trip" class="screen active">
+  <div class="page-title">New <span>trip</span></div>
+
+  <div class="label">Who's coming?</div>
+  <div class="card" style="padding:16px;">
+    <div class="chips" id="crew-chips">
+      <div style="font-size:13px; color:var(--muted);">Add your crew in Settings first</div>
+    </div>
+    <button class="btn maps-btn" id="maps-btn" onclick="openMaps()" style="display:none;">↗ Open route in Google Maps</button>
+  </div>
+
+  <div id="direction-btn" class="dir-btn" onclick="flipDirection()">
+    <div class="dir-endpoints">
+      <span class="dir-node" id="dir-from">Home</span>
+      <span class="dir-arrow">→</span>
+      <span class="dir-node" id="dir-to">Club</span>
+    </div>
+    <span class="dir-flip-icon" id="dir-flip-icon">⇄</span>
+  </div>
+
+  <div id="route-selector" style="display:none; margin-top:4px;">
+    <div class="card" style="padding:14px 16px;">
+      <div id="rs-home-row">
+        <div style="font-size:11px; color:var(--muted); margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em;">From</div>
+        <div class="chips" id="home-chips"></div>
+      </div>
+      <div id="rs-club-row" style="margin-top:12px;">
+        <div style="font-size:11px; color:var(--muted); margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em;">To</div>
+        <div class="chips" id="club-chips"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="label" style="margin-top:4px;">Kilometers</div>
+  <div class="card" style="padding:16px;">
+    <div class="irow">
+      <input type="number" id="km-input" placeholder="e.g. 38" min="1" step="0.1" oninput="updatePreview()" />
+    </div>
+    <div class="preset-chips" id="preset-chips"></div>
+  </div>
+
+  <div class="preview" id="preview">
+    <div class="preview-big" id="preview-big">—</div>
+    <div class="preview-sub" id="preview-sub"></div>
+    <div class="route-viz" id="route-viz" onclick="openMaps()"></div>
+  </div>
+
+  <button class="btn coral full" id="save-btn" onclick="logTrip()">Save trip</button>
+</div>
+
+<!-- DEBTS -->
+<div id="s-debts" class="screen">
+  <div class="page-title">Who <span>owes</span> you</div>
+  <div class="card" id="debts-card"><div id="debts-body"></div></div>
+  <div class="empty" id="debts-empty" style="display:none;">All settled up ✦</div>
+</div>
+
+<!-- LOG -->
+<div id="s-log" class="screen">
+  <div class="page-title">Trip <span>history</span></div>
+  <div class="card" id="log-card"><div id="log-body"></div></div>
+  <div class="empty" id="log-empty" style="display:none;">No trips yet</div>
+</div>
+
+<!-- SETTINGS -->
+<div id="s-settings" class="screen">
+  <div class="page-title"><span>Settings</span></div>
+  <div class="label">Your home address</div>
+  <div class="card"><input type="text" id="s-home" placeholder="Your home address" oninput="sv('homeAddr',this.value)" /></div>
+  <div class="label" style="margin-top:4px;">Alternative starting points</div>
+  <div class="card">
+    <div id="home-addrs-list"></div>
+    <hr id="home-addrs-hr" style="display:none;">
+    <div class="igroup"><label>Label</label><input type="text" id="ha-label" placeholder="e.g. Felix's place" /></div>
+    <div class="igroup"><label>Address</label><input type="text" id="ha-addr" placeholder="Full address" /></div>
+    <button class="btn full" onclick="addHomeAddr()">Add starting point</button>
+  </div>
+  <div class="label">Club / destination address</div>
+  <div class="card"><input type="text" id="s-club" placeholder="Hall or club address" oninput="sv('clubAddr',this.value)" /></div>
+  <div class="label" style="margin-top:4px;">Alternative destinations</div>
+  <div class="card">
+    <div id="club-addrs-list"></div>
+    <hr id="club-addrs-hr" style="display:none;">
+    <div class="igroup"><label>Label</label><input type="text" id="ca-label" placeholder="e.g. Away hall" /></div>
+    <div class="igroup"><label>Address</label><input type="text" id="ca-addr" placeholder="Full address" /></div>
+    <button class="btn full" onclick="addClubAddr()">Add destination</button>
+  </div>
+  <div class="label">Vehicle</div>
+  <div class="card">
+    <div class="igroup"><label>Consumption (L/100km)</label><input type="number" id="s-cons" value="7.5" step="0.1" min="1" oninput="sv('consumption',this.value)" /></div>
+    <div class="igroup"><label>Gas price (€/L)</label><input type="number" id="s-gas" value="1.79" step="0.01" min="0.5" oninput="sv('gasPrice',this.value)" /></div>
+    <div class="igroup"><label>Driver surcharge (€/km, optional)</label><input type="number" id="s-surch" value="0" step="0.01" min="0" oninput="sv('surcharge',this.value)" /></div>
+  </div>
+  <div class="label">Crew members</div>
+  <div class="card">
+    <div id="members-list"></div>
+    <hr>
+    <div class="label" style="margin-bottom:10px;">Add member</div>
+    <div class="igroup"><label>Name</label><input type="text" id="n-name" placeholder="e.g. Felix" /></div>
+    <div class="igroup"><label>Address (optional — for Maps route)</label><input type="text" id="n-addr" placeholder="e.g. Musterstr. 5, Saarbrücken" /></div>
+    <button class="btn coral full" onclick="addMember()" style="margin-top:4px;">Add to crew</button>
+  </div>
+  <div class="label">Distance presets</div>
+  <div class="card">
+    <div id="presets-list"></div>
+    <hr>
+    <div class="igroup"><label>Label</label><input type="text" id="p-name" placeholder="e.g. Direct to hall" /></div>
+    <div class="igroup"><label>Kilometers</label><input type="number" id="p-km" placeholder="38" min="1" step="0.1" /></div>
+    <button class="btn full" onclick="addPreset()">Add preset</button>
+  </div>
+  <div class="label">Data</div>
+  <div class="card">
+    <button class="btn danger full" onclick="zeroDebts()" style="width:100%; text-align:left; padding:12px 14px;">Zero out all debts</button>
+    <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;">Set every debt balance to exactly €0.00, bypassing payment history.</div>
+    <button class="btn danger full" onclick="clearTrips()" style="width:100%; text-align:left; padding:12px 14px;">Clear trip history</button>
+    <div style="font-size:12px; color:var(--muted); margin: 6px 0 0 2px;">Remove all logged trips. Does not touch debt balances.</div>
+  </div>
+</div>
+
+<!-- CHIP CONFIG MODAL -->
+<div class="overlay" id="chip-overlay">
+  <div class="modal">
+    <div class="modal-title" id="cm-title"></div>
+    <div class="modal-sub" id="cm-sub"></div>
+    <div class="igroup">
+      <label>Pickup address for this trip</label>
+      <input type="text" id="cm-addr" placeholder="Leave blank to use saved address" />
+    </div>
+    <div class="came-to-me-section">
+      <div class="came-label">Came to you first?</div>
+      <button class="btn full" id="came-toggle-btn" onclick="toggleCameToMe()">Came to me</button>
+      <div id="came-subopts" style="display:none; margin-top:12px;">
+        <div class="came-label" style="margin-bottom:8px;">So...</div>
+        <div class="came-btns">
+          <button class="btn spare" id="btn-spare" onclick="setCameToMe('spare')">🎁 Spare them</button>
+          <button class="btn still-pay" id="btn-pays" onclick="setCameToMe('pays')">💸 They still pay</button>
+        </div>
+      </div>
+      <div id="came-status" style="margin-top:10px; font-size:12px; color:var(--muted2); min-height:18px;"></div>
+    </div>
+    <hr>
+    <div style="display:flex; gap:8px;">
+      <button class="btn ghost" style="flex:1;" onclick="closeChipModal(false)">Cancel</button>
+      <button class="btn danger" id="btn-remove" style="display:none;" onclick="closeChipModal('remove')">Remove</button>
+      <button class="btn coral" style="flex:2;" onclick="closeChipModal(true)">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAY MODAL -->
+<div class="overlay" id="pay-overlay">
+  <div class="modal">
+    <div class="modal-title" id="pay-name"></div>
+    <div class="modal-sub" id="pay-sub"></div>
+    <div class="pay-pills" id="pay-pills"></div>
+    <div class="igroup">
+      <label>Or enter custom amount (€)</label>
+      <div class="irow">
+        <input type="number" id="pay-custom" placeholder="0.00" step="0.01" min="0" />
+        <button class="btn coral" onclick="applyPayment()">Confirm</button>
+      </div>
+    </div>
+    <hr>
+    <button class="btn ghost full" onclick="closePayModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+let S = {
+  members:[], trips:[], debts:{},
+  settings:{ homeAddr:'', clubAddr:'', consumption:7.5, gasPrice:1.79, surcharge:0, homeAddrs:[], clubAddrs:[] },
+  presets:[]
+};
+
+// Per-trip overrides: { memberId: { addr: string|null, cameToMe: null|'spare'|'pays' } }
+let tripOverrides = {};
+let checkedIds = new Set();
+let chipModalId = null;
+let chipModalTemp = {};
+let payModalName = null;
+let tripHome = null; // null = use settings.homeAddr; otherwise id from settings.homeAddrs
+let tripClub = null; // null = use settings.clubAddr; otherwise id from settings.clubAddrs
+let tripDirection = 'there'; // 'there' = home→club, 'back' = club→home
+
+function persist() { localStorage.setItem('carpool_v4', JSON.stringify(S)); }
+function hydrate() {
+  const r = localStorage.getItem('carpool_v4');
+  if (r) try { const d=JSON.parse(r); S={...S,...d}; S.settings={...S.settings,...(d.settings||{})}; } catch(e){}
+}
+
+function showScreen(id, btn) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id==='debts') renderDebts();
+  if (id==='log') renderLog();
+  if (id==='settings') renderSettings();
+  if (id==='trip') renderTrip();
+}
+
+function sv(k,v) { S.settings[k]=isNaN(parseFloat(v))||v===''?v:parseFloat(v); persist(); }
+function ini(n) { return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+
+/* ── TRIP ── */
+function renderTrip() {
+  const el = document.getElementById('crew-chips');
+  if (!S.members.length) {
+    el.innerHTML = '<div style="font-size:13px; color:var(--muted);">Add your crew in Settings first</div>';
+    document.getElementById('maps-btn').style.display='none';
+  } else {
+    el.innerHTML = S.members.map(m => {
+      const ov = tripOverrides[m.id] || {};
+      const isOn = checkedIds.has(m.id);
+      let cls = isOn ? 'on' : '';
+      let badge = '';
+      if (isOn && ov.cameToMe === 'spare') { cls='spared'; badge='<span class="chip-badge">free</span>'; }
+      else if (isOn && ov.cameToMe === 'pays') { cls='came-pays'; badge='<span class="chip-badge">no detour</span>'; }
+      else if (isOn && ov.addr) { badge='<span class="chip-badge">↻</span>'; }
+      return `<div class="chip ${cls}" onclick="${isOn ? `openChipModal(${m.id})` : `quickAddMember(${m.id})`}">
+        <span class="pip"></span>${m.name}${badge}
+      </div>`;
+    }).join('');
+    const anyOn = checkedIds.size > 0;
+    document.getElementById('maps-btn').style.display = anyOn ? 'block' : 'none';
+  }
+  const pc = document.getElementById('preset-chips');
+  pc.innerHTML = S.presets.map(p =>
+    `<div class="preset-chip" onclick="usePreset(${p.km})">${p.name} <span style="color:var(--muted);font-size:11px;">${p.km}km</span></div>`
+  ).join('');
+  renderRouteSelector();
+  updateDirectionBtn();
+  updatePreview();
+}
+
+function flipDirection() {
+  tripDirection = tripDirection === 'there' ? 'back' : 'there';
+  const icon = document.getElementById('dir-flip-icon');
+  icon.classList.remove('flip-spinning');
+  void icon.offsetWidth; // reflow to restart animation
+  icon.classList.add('flip-spinning');
+  icon.addEventListener('animationend', () => icon.classList.remove('flip-spinning'), { once: true });
+  const from = document.getElementById('dir-from');
+  const to = document.getElementById('dir-to');
+  [from, to].forEach(el => {
+    el.classList.remove('label-swapping');
+    void el.offsetWidth;
+    el.classList.add('label-swapping');
+    el.addEventListener('animationend', () => el.classList.remove('label-swapping'), { once: true });
+  });
+  updateDirectionBtn();
+  updatePreview();
+}
+
+function updateDirectionBtn() {
+  const homeLabel = activeTripHome() ? shortAddr(activeTripHome()) : 'Home';
+  const clubLabel = activeTripClub() ? shortAddr(activeTripClub()) : 'Club';
+  const btn = document.getElementById('direction-btn');
+  btn.classList.toggle('back', tripDirection === 'back');
+  document.getElementById('dir-from').textContent = tripDirection === 'there' ? homeLabel : clubLabel;
+  document.getElementById('dir-to').textContent   = tripDirection === 'there' ? clubLabel : homeLabel;
+}
+
+function usePreset(km) {
+  document.getElementById('km-input').value = km;
+  updatePreview();
+}
+
+function updatePreview() {
+  const km = parseFloat(document.getElementById('km-input').value);
+  const pv = document.getElementById('preview');
+  if (!km || km<=0) { pv.style.display='none'; return; }
+  const paying = [...checkedIds].map(id=>S.members.find(m=>m.id===id)).filter(m=>{
+    if (!m) return false;
+    const ov = tripOverrides[m.id]||{};
+    return ov.cameToMe !== 'spare';
+  });
+  const spared = [...checkedIds].map(id=>S.members.find(m=>m.id===id)).filter(m=>{
+    if (!m) return false;
+    return (tripOverrides[m.id]||{}).cameToMe === 'spare';
+  });
+  const total = paying.length + 1;
+  const fuel = (km/100)*(S.settings.consumption||7.5)*(S.settings.gasPrice||1.79);
+  const surch = (S.settings.surcharge||0)*km;
+  const perFuel = fuel/total;
+  const perSurch = paying.length ? surch/paying.length : 0;
+  const perPass = perFuel+perSurch;
+  pv.style.display='block';
+  document.getElementById('preview-big').textContent = paying.length ? `€${perPass.toFixed(2)}` : `€${fuel.toFixed(2)}`;
+  let sub = '';
+  if (!checkedIds.size) {
+    sub = `<b>${km} km</b> — riding solo`;
+  } else {
+    sub = `per passenger &nbsp;·&nbsp; <b>${total} people splitting</b> &nbsp;·&nbsp; €${fuel.toFixed(2)} fuel total`;
+    if (spared.length) sub += `<br><span style="color:var(--amber);">${spared.map(m=>m.name).join(', ')} ride free this trip</span>`;
+  }
+  document.getElementById('preview-sub').innerHTML = sub;
+  renderRouteViz(km);
+}
+
+/* ── ROUTE VIZ ── */
+function renderRouteViz(km) {
+  const viz = document.getElementById('route-viz');
+  const homeAddr = activeTripHome();
+  const clubAddr = activeTripClub();
+  const homeLabel = homeAddr ? shortAddr(homeAddr) : 'Home';
+  const clubLabel = clubAddr ? shortAddr(clubAddr) : 'Club';
+
+  // Build stops: home → [passengers] → club (reversed for 'back' direction)
+  const midStops = [];
+  [...checkedIds].forEach(id => {
+    const m = S.members.find(m=>m.id===id);
+    if (!m) return;
+    const ov = tripOverrides[id]||{};
+    if (ov.cameToMe) return;
+    const addr = ov.addr || m.addr;
+    midStops.push({ label: m.name, sublabel: addr ? shortAddr(addr) : null, type: 'pickup' });
+  });
+  const isBack = tripDirection === 'back';
+  const stops = isBack
+    ? [{ label: clubLabel, type: 'club' }, ...midStops.slice().reverse(), { label: homeLabel, type: 'home' }]
+    : [{ label: homeLabel, type: 'home' }, ...midStops, { label: clubLabel, type: 'club' }];
+
+  const W = 460, H = 110;
+  const n = stops.length;
+  const pad = 36;
+  const spacing = n > 1 ? (W - pad*2) / (n-1) : 0;
+
+  const pts = stops.map((s,i) => ({
+    x: n===1 ? W/2 : pad + i*spacing,
+    y: H/2,
+    ...s
+  }));
+
+  // Build curved path through all points
+  let pathD = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i=1; i<pts.length; i++) {
+    const prev = pts[i-1], cur = pts[i];
+    const cx1 = prev.x + (cur.x-prev.x)*0.5;
+    const cy1 = prev.y - 22;
+    const cx2 = prev.x + (cur.x-prev.x)*0.5;
+    const cy2 = cur.y - 22;
+    pathD += ` C ${cx1} ${cy1} ${cx2} ${cy2} ${cur.x} ${cur.y}`;
+  }
+
+  const dotColors = { home:'#e8674a', pickup:'#4ecdc4', club:'#7bc67a' };
+  const dotR = { home:7, pickup:6, club:7 };
+
+  let dotsHTML = pts.map(p => {
+    const r = dotR[p.type];
+    const col = dotColors[p.type];
+    const nameY = p.y - r - 10;
+    const subY = nameY - 14;
+    return `
+      <circle cx="${p.x}" cy="${p.y}" r="${r+4}" fill="${col}" opacity="0.15"/>
+      <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${col}"/>
+      ${p.sublabel ? `<text x="${p.x}" y="${subY}" text-anchor="middle" fill="#8a7e74" font-size="9" font-family="Instrument Sans,sans-serif">${p.sublabel}</text>` : ''}
+      <text x="${p.x}" y="${nameY}" text-anchor="middle" fill="${col}" font-size="11" font-weight="600" font-family="Instrument Sans,sans-serif">${p.label}</text>
+    `;
+  }).join('');
+
+  viz.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+      <defs>
+        <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L6,3 z" fill="rgba(78,205,196,0.5)"/>
+        </marker>
+      </defs>
+      <path d="${pathD}" fill="none" stroke="rgba(78,205,196,0.25)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+      ${dotsHTML}
+      <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="#8a7e74" font-size="10" font-family="Instrument Sans,sans-serif">${km} km total</text>
+    </svg>
+    <div class="route-tap-hint">tap to open in Maps ↗</div>
+  `;
+}
+
+function shortAddr(addr) {
+  const parts = addr.split(',');
+  return parts[0].trim().slice(0,18);
+}
+
+/* ── CHIP MODAL ── */
+function quickAddMember(id) {
+  checkedIds.add(id);
+  renderTrip();
+}
+
+function openChipModal(id) {
+  chipModalId = id;
+  const m = S.members.find(m=>m.id===id);
+  const ov = tripOverrides[id]||{};
+  chipModalTemp = { addr: ov.addr||'', cameToMe: ov.cameToMe||null, cameActive: !!(ov.cameToMe), wasChecked: checkedIds.has(id) };
+
+  document.getElementById('cm-title').textContent = m.name;
+  document.getElementById('cm-sub').textContent = m.addr ? `Saved: ${m.addr}` : 'No saved address';
+  document.getElementById('cm-addr').value = chipModalTemp.addr;
+  document.getElementById('btn-remove').style.display = chipModalTemp.wasChecked ? '' : 'none';
+
+  updateCameStatus();
+  document.getElementById('chip-overlay').classList.add('open');
+
+  if (!checkedIds.has(id)) checkedIds.add(id);
+}
+
+function toggleCameToMe() {
+  chipModalTemp.cameActive = !chipModalTemp.cameActive;
+  if (chipModalTemp.cameActive) {
+    chipModalTemp._savedAddr = document.getElementById('cm-addr').value;
+  } else {
+    chipModalTemp.cameToMe = null;
+    document.getElementById('cm-addr').value = chipModalTemp._savedAddr || '';
+  }
+  updateCameStatus();
+}
+
+function setCameToMe(mode) {
+  chipModalTemp.cameToMe = chipModalTemp.cameToMe === mode ? null : mode;
+  updateCameStatus();
+}
+
+function updateCameStatus() {
+  const toggleBtn = document.getElementById('came-toggle-btn');
+  const subopts = document.getElementById('came-subopts');
+  const status = document.getElementById('came-status');
+
+  const addrInput = document.getElementById('cm-addr');
+  if (chipModalTemp.cameActive) {
+    toggleBtn.classList.add('coral');
+    subopts.style.display = 'block';
+    addrInput.value = '';
+    addrInput.disabled = true;
+    addrInput.placeholder = 'No pickup needed — they start with you';
+  } else {
+    toggleBtn.classList.remove('coral');
+    subopts.style.display = 'none';
+    addrInput.disabled = false;
+    addrInput.placeholder = 'Leave blank to use saved address';
+  }
+
+  // highlight selected sub-option
+  document.getElementById('btn-spare').style.opacity = (!chipModalTemp.cameToMe || chipModalTemp.cameToMe === 'spare') ? '1' : '0.45';
+  document.getElementById('btn-pays').style.opacity  = (!chipModalTemp.cameToMe || chipModalTemp.cameToMe === 'pays')  ? '1' : '0.45';
+
+  if (chipModalTemp.cameToMe === 'spare') {
+    status.innerHTML = '<span style="color:var(--amber);">✦ Free ride — not counted in split</span>';
+  } else if (chipModalTemp.cameToMe === 'pays') {
+    status.innerHTML = '<span style="color:var(--cyan);">✦ Pays their share — no detour added to route</span>';
+  } else if (chipModalTemp.cameActive) {
+    status.innerHTML = '<span style="color:var(--muted2);">Pick an option above</span>';
+  } else {
+    status.textContent = '';
+  }
+}
+
+function closeChipModal(confirm) {
+  if (confirm === 'remove') {
+    checkedIds.delete(chipModalId);
+    delete tripOverrides[chipModalId];
+  } else if (confirm) {
+    const addr = document.getElementById('cm-addr').value.trim();
+    tripOverrides[chipModalId] = {
+      addr: chipModalTemp.cameActive ? null : (addr || null),
+      cameToMe: chipModalTemp.cameToMe
+    };
+  } else {
+    if (!chipModalTemp.wasChecked && checkedIds.has(chipModalId)) {
+      checkedIds.delete(chipModalId);
+    }
+  }
+  document.getElementById('chip-overlay').classList.remove('open');
+  chipModalId = null;
+  renderTrip();
+}
+
+document.getElementById('chip-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeChipModal(false); });
+
+/* ── ACTIVE ROUTE ENDPOINTS ── */
+function activeTripHome() {
+  if (tripHome) { const h=(S.settings.homeAddrs||[]).find(h=>h.id===tripHome); if(h) return h.addr; }
+  return S.settings.homeAddr;
+}
+function activeTripClub() {
+  if (tripClub) { const c=(S.settings.clubAddrs||[]).find(c=>c.id===tripClub); if(c) return c.addr; }
+  return S.settings.clubAddr;
+}
+
+/* ── MAPS ── */
+function openMaps() {
+  const home = activeTripHome(), club = activeTripClub();
+  if (!home || !club) { alert('Add home and club address in Settings first.'); return; }
+  const enc = s => encodeURIComponent(s);
+  const stops = [...checkedIds].map(id => {
+    const m = S.members.find(m=>m.id===id);
+    if (!m) return null;
+    const ov = tripOverrides[id]||{};
+    if (ov.cameToMe) return null; // no detour
+    return enc(ov.addr || m.addr || '');
+  }).filter(Boolean);
+  const mid = stops.length ? stops.join('/') + '/' : '';
+  window.open(`https://www.google.com/maps/dir/${enc(home)}/${mid}${enc(club)}`, '_blank');
+}
+
+/* ── LOG TRIP ── */
+function logTrip() {
+  const km = parseFloat(document.getElementById('km-input').value);
+  if (!km||km<=0) { alert('Enter kilometers first'); return; }
+  const all = [...checkedIds].map(id=>S.members.find(m=>m.id===id)).filter(Boolean);
+  const paying = all.filter(m=>(tripOverrides[m.id]||{}).cameToMe !== 'spare');
+  const spared = all.filter(m=>(tripOverrides[m.id]||{}).cameToMe === 'spare');
+  const total = paying.length + 1;
+  const fuel = (km/100)*(S.settings.consumption||7.5)*(S.settings.gasPrice||1.79);
+  const surch = (S.settings.surcharge||0)*km;
+  const perFuel = fuel/total;
+  const perSurch = paying.length ? surch/paying.length : 0;
+  const perPass = +(perFuel+perSurch).toFixed(2);
+
+  S.trips.unshift({
+    id:Date.now(),
+    date:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),
+    km, totalCost:+fuel.toFixed(2), perPerson:perPass,
+    passengers:paying.map(p=>p.name),
+    spared:spared.map(p=>p.name)
+  });
+  paying.forEach(p => { S.debts[p.name] = +((S.debts[p.name]||0)+perPass).toFixed(2); });
+  persist();
+
+  checkedIds.clear();
+  tripOverrides = {};
+  tripHome = null;
+  tripClub = null;
+  document.getElementById('km-input').value='';
+  document.getElementById('preview').style.display='none';
+  renderTrip();
+
+  const btn = document.getElementById('save-btn');
+  btn.textContent='✓ Saved';
+  btn.classList.add('saved');
+  setTimeout(()=>{ btn.textContent='Save trip'; btn.classList.remove('saved'); }, 1500);
+}
+
+/* ── DEBTS ── */
+function renderDebts() {
+  const names = Object.keys(S.debts);
+  if (!names.length) {
+    document.getElementById('debts-card').style.display='none';
+    document.getElementById('debts-empty').style.display='block';
+    return;
+  }
+  document.getElementById('debts-card').style.display='block';
+  document.getElementById('debts-empty').style.display='none';
+  document.getElementById('debts-body').innerHTML = names.map(name => {
+    const amt = S.debts[name]||0;
+    const cls = amt<0?'credit':amt===0?'clear':'owing';
+    const lbl = amt<0?`−€${Math.abs(amt).toFixed(2)}`:`€${amt.toFixed(2)}`;
+    return `<div class="debt-row">
+      <div class="avatar">${ini(name)}</div>
+      <div class="debt-name">${name}</div>
+      <div class="debt-amount ${cls}" onclick="openPayModal('${name}')">${lbl}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── LOG ── */
+function renderLog() {
+  if (!S.trips.length) {
+    document.getElementById('log-card').style.display='none';
+    document.getElementById('log-empty').style.display='block';
+    return;
+  }
+  document.getElementById('log-card').style.display='block';
+  document.getElementById('log-empty').style.display='none';
+  document.getElementById('log-body').innerHTML = S.trips.map(t=>{
+    const names = t.passengers.length ? t.passengers.join(', ') : 'Solo';
+    const sparedTxt = t.spared&&t.spared.length ? ` · <span style="color:var(--amber);">${t.spared.join(', ')} free</span>` : '';
+    return `<div class="trip-row">
+      <div style="flex:1; min-width:0;">
+        <div class="trip-names">${names}${sparedTxt}</div>
+        <div class="trip-meta">${t.date} &nbsp;·&nbsp; ${t.km} km &nbsp;·&nbsp; €${t.totalCost.toFixed(2)} total</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+        <div class="trip-amt">€${t.perPerson.toFixed(2)}</div>
+        <button class="btn danger" style="padding:6px 10px; font-size:12px;" onclick="deleteTrip(${t.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── SETTINGS ── */
+function renderSettings() {
+  document.getElementById('s-home').value=S.settings.homeAddr||'';
+  document.getElementById('s-club').value=S.settings.clubAddr||'';
+  document.getElementById('s-cons').value=S.settings.consumption||7.5;
+  document.getElementById('s-gas').value=S.settings.gasPrice||1.79;
+  document.getElementById('s-surch').value=S.settings.surcharge||0;
+
+  const homeAddrs = S.settings.homeAddrs||[];
+  const clubAddrs = S.settings.clubAddrs||[];
+
+  document.getElementById('home-addrs-hr').style.display = homeAddrs.length ? '' : 'none';
+  document.getElementById('home-addrs-list').innerHTML = homeAddrs.map(h=>
+    `<div class="preset-row">
+      <span>${h.label} <span style="color:var(--muted);font-size:12px;">${shortAddr(h.addr)}</span></span>
+      <button class="btn danger" onclick="removeHomeAddr(${h.id})">Remove</button>
+    </div>`).join('');
+
+  document.getElementById('club-addrs-hr').style.display = clubAddrs.length ? '' : 'none';
+  document.getElementById('club-addrs-list').innerHTML = clubAddrs.map(c=>
+    `<div class="preset-row">
+      <span>${c.label} <span style="color:var(--muted);font-size:12px;">${shortAddr(c.addr)}</span></span>
+      <button class="btn danger" onclick="removeClubAddr(${c.id})">Remove</button>
+    </div>`).join('');
+
+  document.getElementById('members-list').innerHTML = S.members.length
+    ? S.members.map(m=>`<div class="member-row">
+        <div class="avatar">${ini(m.name)}</div>
+        <div class="member-info"><div class="member-name-txt">${m.name}</div><div class="member-addr-txt">${m.addr||'No address'}</div></div>
+        <button class="btn danger" onclick="removeMember(${m.id})">Remove</button>
+      </div>`).join('')
+    : '<div style="font-size:13px;color:var(--muted);padding:4px 0;">No crew yet</div>';
+
+  document.getElementById('presets-list').innerHTML = S.presets.length
+    ? S.presets.map(p=>`<div class="preset-row">
+        <span>${p.name} <span style="color:var(--muted);font-size:12px;">${p.km} km</span></span>
+        <button class="btn danger" onclick="removePreset(${p.id})">Remove</button>
+      </div>`).join('')
+    : '<div style="font-size:13px;color:var(--muted);padding:4px 0;">No presets yet</div>';
+}
+
+function addMember() {
+  const name=document.getElementById('n-name').value.trim();
+  const addr=document.getElementById('n-addr').value.trim();
+  if (!name) return;
+  S.members.push({id:Date.now(),name,addr});
+  if (S.debts[name]===undefined) S.debts[name]=0;
+  document.getElementById('n-name').value='';
+  document.getElementById('n-addr').value='';
+  persist(); renderSettings(); renderTrip();
+}
+function removeMember(id) {
+  const m=S.members.find(m=>m.id===id);
+  if (!m||!confirm(`Remove ${m.name}?`)) return;
+  S.members=S.members.filter(m=>m.id!==id);
+  persist(); renderSettings(); renderTrip();
+}
+function addPreset() {
+  const name=document.getElementById('p-name').value.trim();
+  const km=parseFloat(document.getElementById('p-km').value);
+  if (!name||!km) return;
+  S.presets.push({id:Date.now(),name,km});
+  document.getElementById('p-name').value='';
+  document.getElementById('p-km').value='';
+  persist(); renderSettings(); renderTrip();
+}
+function removePreset(id) {
+  S.presets=S.presets.filter(p=>p.id!==id);
+  persist(); renderSettings(); renderTrip();
+}
+
+/* ── PAY MODAL ── */
+function openPayModal(name) {
+  payModalName=name;
+  const debt=S.debts[name]||0;
+  document.getElementById('pay-name').textContent=`${name} pays`;
+  document.getElementById('pay-sub').textContent=`Currently owes: €${debt.toFixed(2)}`;
+  const uniq=[...new Set([debt>0?debt:null,5,10,20].filter(v=>v&&v>0).map(v=>+v.toFixed(2)))].sort((a,b)=>a-b);
+  document.getElementById('pay-pills').innerHTML=uniq.map(v=>
+    `<div class="pay-pill" onclick="selPill(this,${v})">€${v.toFixed(2)}</div>`).join('');
+  document.getElementById('pay-custom').value='';
+  document.getElementById('pay-overlay').classList.add('open');
+}
+function selPill(el,val) {
+  document.querySelectorAll('.pay-pill').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('pay-custom').value=val.toFixed(2);
+}
+function applyPayment() {
+  const amt=parseFloat(document.getElementById('pay-custom').value);
+  if (!amt||amt<=0) { closePayModal(); return; }
+  S.debts[payModalName]=+((S.debts[payModalName]||0)-amt).toFixed(2);
+  persist(); closePayModal(); renderDebts();
+}
+function closePayModal() {
+  document.getElementById('pay-overlay').classList.remove('open');
+  payModalName=null;
+}
+document.getElementById('pay-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closePayModal();});
+
+/* ── ROUTE SELECTOR ── */
+function renderRouteSelector() {
+  const homeAddrs = S.settings.homeAddrs||[];
+  const clubAddrs = S.settings.clubAddrs||[];
+  const sel = document.getElementById('route-selector');
+  if (!homeAddrs.length && !clubAddrs.length) { sel.style.display='none'; return; }
+  sel.style.display='';
+
+  const homeRow = document.getElementById('rs-home-row');
+  if (homeAddrs.length) {
+    homeRow.style.display='';
+    const all = [{ id:null, label: S.settings.homeAddr ? shortAddr(S.settings.homeAddr) : 'Default' }, ...homeAddrs.map(h=>({id:h.id,label:h.label}))];
+    document.getElementById('home-chips').innerHTML = all.map(h=>
+      `<div class="chip ${tripHome===h.id?'on':''}" onclick="selectTripAddr('home',${h.id===null?'null':h.id})"><span class="pip"></span>${h.label}</div>`
+    ).join('');
+  } else {
+    homeRow.style.display='none';
+  }
+
+  const clubRow = document.getElementById('rs-club-row');
+  if (clubAddrs.length) {
+    clubRow.style.display='';
+    const all = [{ id:null, label: S.settings.clubAddr ? shortAddr(S.settings.clubAddr) : 'Default' }, ...clubAddrs.map(c=>({id:c.id,label:c.label}))];
+    document.getElementById('club-chips').innerHTML = all.map(c=>
+      `<div class="chip ${tripClub===c.id?'on':''}" onclick="selectTripAddr('club',${c.id===null?'null':c.id})"><span class="pip"></span>${c.label}</div>`
+    ).join('');
+  } else {
+    clubRow.style.display='none';
+  }
+}
+
+function selectTripAddr(type, id) {
+  if (type==='home') tripHome = id;
+  else tripClub = id;
+  renderRouteSelector();
+  updatePreview();
+}
+
+/* ── ALT ADDRESSES ── */
+function addHomeAddr() {
+  const label=document.getElementById('ha-label').value.trim();
+  const addr=document.getElementById('ha-addr').value.trim();
+  if (!label||!addr) return;
+  if (!S.settings.homeAddrs) S.settings.homeAddrs=[];
+  S.settings.homeAddrs.push({id:Date.now(),label,addr});
+  document.getElementById('ha-label').value='';
+  document.getElementById('ha-addr').value='';
+  persist(); renderSettings(); renderRouteSelector();
+}
+function removeHomeAddr(id) {
+  S.settings.homeAddrs=(S.settings.homeAddrs||[]).filter(h=>h.id!==id);
+  if (tripHome===id) tripHome=null;
+  persist(); renderSettings(); renderRouteSelector(); updatePreview();
+}
+function addClubAddr() {
+  const label=document.getElementById('ca-label').value.trim();
+  const addr=document.getElementById('ca-addr').value.trim();
+  if (!label||!addr) return;
+  if (!S.settings.clubAddrs) S.settings.clubAddrs=[];
+  S.settings.clubAddrs.push({id:Date.now(),label,addr});
+  document.getElementById('ca-label').value='';
+  document.getElementById('ca-addr').value='';
+  persist(); renderSettings(); renderRouteSelector();
+}
+function removeClubAddr(id) {
+  S.settings.clubAddrs=(S.settings.clubAddrs||[]).filter(c=>c.id!==id);
+  if (tripClub===id) tripClub=null;
+  persist(); renderSettings(); renderRouteSelector(); updatePreview();
+}
+
+/* ── DELETE TRIP ── */
+function deleteTrip(id) {
+  const t=S.trips.find(t=>t.id===id);
+  if (!t||!confirm('Delete this trip and reverse its debts?')) return;
+  (t.passengers||[]).forEach(name=>{
+    if (S.debts[name]!==undefined) S.debts[name]=+((S.debts[name]-t.perPerson).toFixed(2));
+  });
+  S.trips=S.trips.filter(t=>t.id!==id);
+  persist(); renderLog(); renderDebts();
+}
+
+/* ── DATA RESETS ── */
+function zeroDebts() {
+  if (!confirm('Set all debt balances to exactly €0.00?')) return;
+  Object.keys(S.debts).forEach(k=>S.debts[k]=0);
+  persist(); renderDebts();
+}
+function clearTrips() {
+  if (!confirm('Delete all trip history? Debt balances will not change.')) return;
+  S.trips=[];
+  persist(); renderLog();
+}
+
+/* ── INIT ── */
+hydrate(); renderTrip(); renderSettings();
+</script>
+</body>
+</html>
