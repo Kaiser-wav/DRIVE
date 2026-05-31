@@ -2,26 +2,43 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Carpool</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── DARK (default) — Royal Night ── */
 :root {
-  --bg:#1a1612; --bg2:#221e19; --bg3:#2c2720; --bg4:#363028;
-  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
-  --text:#f5ede4; --muted:#8a7e74; --muted2:#b5a898;
-  --coral:#e8674a; --coral2:#f0896f; --coral-bg:rgba(232,103,74,0.12); --coral-bd:rgba(232,103,74,0.28);
+  --bg:#0b0d19; --bg2:#111428; --bg3:#181b34; --bg4:#1f2340;
+  --border:rgba(80,100,220,0.13); --border2:rgba(80,100,220,0.24);
+  --text:#ede8dc; --muted:#565976; --muted2:#9296b2;
+  --coral:#4a72f5; --coral2:#6b8ff7; --coral-bg:rgba(74,114,245,0.12); --coral-bd:rgba(74,114,245,0.28);
   --cyan:#4ecdc4; --cyan-bg:rgba(78,205,196,0.1); --cyan-bd:rgba(78,205,196,0.25);
   --green:#7bc67a; --green-bg:rgba(123,198,122,0.1); --green-bd:rgba(123,198,122,0.25);
-  --amber:#e8b96a; --amber-bg:rgba(232,185,106,0.1); --amber-bd:rgba(232,185,106,0.25);
+  --amber:#d4a85a; --amber-bg:rgba(212,168,90,0.1); --amber-bd:rgba(212,168,90,0.25);
+  --overlay-bg:rgba(6,7,18,0.88);
   --r:14px; --r-sm:8px;
 }
+
+/* ── LIGHT — Warm Beige ── */
+html[data-theme="light"] {
+  --bg:#f0ead8; --bg2:#e8e1cd; --bg3:#dfd8c2; --bg4:#d5cebc;
+  --border:rgba(60,50,20,0.1); --border2:rgba(60,50,20,0.18);
+  --text:#0c0e1c; --muted:#7a7265; --muted2:#4e4a3c;
+  --coral:#1a3cc8; --coral2:#1030b0; --coral-bg:rgba(26,60,200,0.08); --coral-bd:rgba(26,60,200,0.2);
+  --cyan:#157a74; --cyan-bg:rgba(21,122,116,0.08); --cyan-bd:rgba(21,122,116,0.2);
+  --green:#1a6b19; --green-bg:rgba(26,107,25,0.08); --green-bd:rgba(26,107,25,0.2);
+  --amber:#8b5f0c; --amber-bg:rgba(139,95,12,0.08); --amber-bd:rgba(139,95,12,0.2);
+  --overlay-bg:rgba(15,15,35,0.62);
+}
+
 body { background:var(--bg); color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:15px; min-height:100vh; -webkit-font-smoothing:antialiased; }
 
-nav { position:sticky; top:0; z-index:50; display:flex; background:var(--bg2); border-bottom:1px solid var(--border); padding:0 4px; }
-nav button { flex:1; padding:13px 6px; background:none; border:none; font-family:'Instrument Sans',sans-serif; font-size:12px; font-weight:500; color:var(--muted); letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; transition:color 0.15s; border-bottom:2px solid transparent; margin-bottom:-1px; }
-nav button.active { color:var(--coral); border-bottom-color:var(--coral); }
+/* ── BOTTOM NAV ── */
+nav { position:fixed; bottom:0; left:0; right:0; z-index:50; display:flex; background:var(--bg2); border-top:1px solid var(--border); padding:0 4px; padding-bottom:env(safe-area-inset-bottom,0px); }
+nav button { flex:1; padding:13px 6px 12px; background:none; border:none; font-family:'Instrument Sans',sans-serif; font-size:12px; font-weight:500; color:var(--muted); letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; transition:color 0.15s; border-top:2px solid transparent; margin-top:-1px; }
+nav button.active { color:var(--coral); border-top-color:var(--coral); }
 nav button:hover:not(.active) { color:var(--muted2); }
 
 .screen { display:none; padding:20px 16px 90px; max-width:500px; margin:0 auto; }
@@ -41,7 +58,8 @@ input::placeholder { color:var(--muted); }
 .irow { display:flex; gap:8px; }
 .irow input { flex:1; }
 
-.btn { background:var(--bg3); border:1px solid var(--border); border-radius:var(--r-sm); color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:14px; font-weight:500; padding:11px 16px; cursor:pointer; transition:background 0.15s,border-color 0.15s; white-space:nowrap; }
+.btn { background:var(--bg3); border:1px solid var(--border); border-radius:var(--r-sm); color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:14px; font-weight:500; padding:11px 16px; cursor:pointer; transition:background-color 0.15s,border-color 0.15s,color 0.15s,transform 0.2s cubic-bezier(0.34,1.56,0.64,1),opacity 0.15s; white-space:nowrap; }
+.btn:active { transform:scale(0.97); opacity:0.88; }
 .btn:hover { background:var(--bg4); border-color:var(--border2); }
 .btn.full { width:100%; }
 .btn.coral { background:var(--coral); border-color:var(--coral); color:#fff; }
@@ -51,14 +69,15 @@ input::placeholder { color:var(--muted); }
 .btn.danger { background:none; border-color:transparent; color:#c0574a; font-size:13px; padding:8px 10px; }
 .btn.danger:hover { background:rgba(192,87,74,0.1); }
 .btn.maps-btn { background:var(--cyan-bg); border-color:var(--cyan-bd); color:var(--cyan); font-size:13px; width:100%; margin-top:10px; }
-.btn.maps-btn:hover { background:rgba(78,205,196,0.16); }
+.btn.maps-btn:hover { background:var(--cyan-bg); filter:brightness(1.15); }
 .btn.spare { background:var(--amber-bg); border-color:var(--amber-bd); color:var(--amber); }
-.btn.spare:hover { background:rgba(232,185,106,0.18); }
+.btn.spare:hover { background:var(--amber-bg); filter:brightness(1.15); }
 .btn.still-pay { background:var(--coral-bg); border-color:var(--coral-bd); color:var(--coral2); }
-.btn.still-pay:hover { background:rgba(232,103,74,0.2); }
+.btn.still-pay:hover { background:var(--coral-bg); filter:brightness(1.15); }
 
 .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
-.chip { display:flex; align-items:center; gap:7px; padding:9px 16px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); cursor:pointer; font-size:14px; font-weight:500; transition:all 0.15s; user-select:none; color:var(--muted2); position:relative; }
+.chip { display:flex; align-items:center; gap:7px; padding:9px 16px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); cursor:pointer; font-size:14px; font-weight:500; transition:border-color 0.15s,background-color 0.15s,color 0.15s,transform 0.22s cubic-bezier(0.34,1.56,0.64,1); user-select:none; color:var(--muted2); position:relative; animation:chipIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both; }
+.chip:active { transform:scale(0.93); }
 .chip .pip { width:6px; height:6px; border-radius:50%; background:var(--bg4); transition:background 0.15s; flex-shrink:0; }
 .chip.on { border-color:var(--coral-bd); background:var(--coral-bg); color:var(--coral2); }
 .chip.on .pip { background:var(--coral); }
@@ -73,7 +92,6 @@ input::placeholder { color:var(--muted); }
 .preview-sub { font-size:13px; color:var(--muted2); line-height:1.6; }
 .preview-sub b { color:var(--text); font-weight:500; }
 
-/* Route illustration */
 .route-viz { margin:14px 0 4px; cursor:pointer; }
 .route-viz svg { width:100%; overflow:visible; }
 .route-viz:hover .route-tap-hint { opacity:1; }
@@ -102,32 +120,37 @@ input::placeholder { color:var(--muted); }
 .member-addr-txt { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 .preset-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-.preset-chip { padding:6px 12px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); font-size:12px; color:var(--muted2); cursor:pointer; transition:all 0.15s; font-family:'Instrument Sans',sans-serif; }
+.preset-chip { padding:6px 12px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); font-size:12px; color:var(--muted2); cursor:pointer; transition:border-color 0.15s,color 0.15s,transform 0.2s cubic-bezier(0.34,1.56,0.64,1); font-family:'Instrument Sans',sans-serif; }
 .preset-chip:hover { border-color:var(--border2); color:var(--text); }
+.preset-chip:active { transform:scale(0.93); }
 
 .preset-row { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-top:1px solid var(--border); font-size:14px; }
 .preset-row:first-child { border-top:none; }
 
 /* Modals */
-.overlay { display:none; position:fixed; inset:0; background:rgba(10,8,6,0.8); z-index:200; align-items:flex-end; justify-content:center; }
+.overlay { display:none; position:fixed; inset:0; background:var(--overlay-bg); z-index:200; align-items:flex-end; justify-content:center; }
 .overlay.open { display:flex; }
 .modal { background:var(--bg2); border:1px solid var(--border2); border-radius:20px 20px 0 0; padding:24px 20px 40px; width:100%; max-width:500px; }
 .modal-title { font-family:'Fraunces',serif; font-size:22px; font-weight:300; margin-bottom:2px; }
 .modal-sub { font-size:13px; color:var(--muted2); margin-bottom:20px; }
 
-/* Chip config modal */
 .came-to-me-section { margin-top:14px; }
 .came-label { font-size:12px; color:var(--muted); margin-bottom:8px; letter-spacing:0.04em; text-transform:uppercase; font-weight:600; }
 .came-btns { display:flex; gap:8px; }
 .came-btns .btn { flex:1; text-align:center; font-size:13px; padding:10px 8px; }
 
-/* Pay modal */
 .pay-pills { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
-.pay-pill { padding:9px 16px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); font-family:'Fraunces',serif; font-size:16px; font-weight:300; cursor:pointer; transition:all 0.15s; color:var(--muted2); }
+.pay-pill { padding:9px 16px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); font-family:'Fraunces',serif; font-size:16px; font-weight:300; cursor:pointer; transition:border-color 0.15s,background-color 0.15s,color 0.15s,transform 0.2s cubic-bezier(0.34,1.56,0.64,1); color:var(--muted2); }
 .pay-pill:hover,.pay-pill.sel { border-color:var(--green-bd); background:var(--green-bg); color:var(--green); }
+.pay-pill:active { transform:scale(0.93); }
 
 .empty { text-align:center; color:var(--muted); font-size:14px; padding:36px 0; }
 hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
+
+/* Theme toggle */
+.toggle-pill { display:flex; background:var(--bg3); border-radius:100px; padding:3px; gap:2px; }
+.toggle-pill button { flex:1; padding:8px 16px; border-radius:100px; border:none; background:transparent; color:var(--muted); font-family:'Instrument Sans',sans-serif; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.2s; }
+.toggle-pill button.active { background:var(--coral); color:#fff; }
 
 @keyframes flashGreen {
   0%   { background:var(--green-bg); border-color:var(--green-bd); color:var(--green); }
@@ -149,16 +172,83 @@ hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
 .flip-spinning { animation:spinFlip 0.38s cubic-bezier(0.4,0,0.2,1); }
 @keyframes labelSwap { 0%{opacity:1;transform:translateY(0)} 35%{opacity:0;transform:translateY(-5px)} 65%{opacity:0;transform:translateY(5px)} 100%{opacity:1;transform:translateY(0)} }
 .label-swapping { animation:labelSwap 0.38s ease; }
+
+/* ── PREMIUM ANIMATIONS ── */
+
+/* Screen enter — fade + lift */
+@keyframes screenEnter {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.screen.active { animation:screenEnter 0.28s cubic-bezier(0.2,0,0,1); }
+
+/* Modal slide up from bottom */
+@keyframes slideUp {
+  from { transform:translateY(60px); opacity:0; }
+  to   { transform:translateY(0);    opacity:1; }
+}
+@keyframes backdropIn { from{opacity:0} to{opacity:1} }
+.overlay.open { animation:backdropIn 0.2s ease; }
+.overlay.open .modal { animation:slideUp 0.32s cubic-bezier(0.22,1,0.36,1); }
+
+/* Chip entrance */
+@keyframes chipIn {
+  from { opacity:0; transform:scale(0.78) translateY(6px); }
+  to   { opacity:1; transform:scale(1)    translateY(0); }
+}
+
+/* Big number pop on change */
+@keyframes numPop {
+  0%   { transform:scale(1); }
+  42%  { transform:scale(1.07); }
+  100% { transform:scale(1); }
+}
+.preview-big.pop { animation:numPop 0.38s cubic-bezier(0.34,1.56,0.64,1); }
+
+/* Preview card reveal */
+@keyframes previewReveal {
+  from { opacity:0; transform:translateY(-8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.preview.entering { animation:previewReveal 0.24s cubic-bezier(0.2,0,0,1); }
+
+/* Theme toggle spring */
+.toggle-pill button { transition:background-color 0.25s, color 0.2s, transform 0.18s cubic-bezier(0.34,1.56,0.64,1); }
+.toggle-pill button:active { transform:scale(0.94); }
+
+/* Smooth theme cross-fade — applied momentarily via JS class */
+html.theme-anim body,
+html.theme-anim nav,
+html.theme-anim .card,
+html.theme-anim .modal,
+html.theme-anim input,
+html.theme-anim .btn,
+html.theme-anim .chip,
+html.theme-anim .toggle-pill,
+html.theme-anim .page-title,
+html.theme-anim .page-title span,
+html.theme-anim .label,
+html.theme-anim .debt-amount,
+html.theme-anim .trip-amt,
+html.theme-anim .avatar,
+html.theme-anim .dir-btn,
+html.theme-anim .preset-chip,
+html.theme-anim .debt-name,
+html.theme-anim .preview {
+  transition:background-color 0.32s ease,border-color 0.28s ease,color 0.24s ease !important;
+}
+
+/* Debt amount tap ripple */
+@keyframes debtTap {
+  0%   { transform:scale(1); }
+  40%  { transform:scale(1.08); }
+  100% { transform:scale(1); }
+}
+.debt-amount { transition:text-decoration-color 0.15s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+.debt-amount:active { transform:scale(0.95); }
 </style>
 </head>
 <body>
-
-<nav>
-  <button class="active" onclick="showScreen('trip',this)">Trip</button>
-  <button onclick="showScreen('debts',this)">Debts</button>
-  <button onclick="showScreen('log',this)">Log</button>
-  <button onclick="showScreen('settings',this)">Settings</button>
-</nav>
 
 <!-- TRIP -->
 <div id="s-trip" class="screen active">
@@ -228,6 +318,15 @@ hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
 <!-- SETTINGS -->
 <div id="s-settings" class="screen">
   <div class="page-title"><span>Settings</span></div>
+
+  <div class="label">Appearance</div>
+  <div class="card" style="padding:10px; margin-bottom:20px;">
+    <div class="toggle-pill">
+      <button id="btn-theme-dark" onclick="applyTheme('dark')">Dark</button>
+      <button id="btn-theme-light" onclick="applyTheme('light')">Light</button>
+    </div>
+  </div>
+
   <div class="label">Your home address</div>
   <div class="card"><input type="text" id="s-home" placeholder="Your home address" oninput="sv('homeAddr',this.value)" /></div>
   <div class="label" style="margin-top:4px;">Alternative starting points</div>
@@ -280,6 +379,14 @@ hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
   </div>
 </div>
 
+<!-- BOTTOM NAV -->
+<nav>
+  <button class="active" onclick="showScreen('trip',this)">Trip</button>
+  <button onclick="showScreen('debts',this)">Debts</button>
+  <button onclick="showScreen('log',this)">Log</button>
+  <button onclick="showScreen('settings',this)">Settings</button>
+</nav>
+
 <!-- CHIP CONFIG MODAL -->
 <div class="overlay" id="chip-overlay">
   <div class="modal">
@@ -331,24 +438,43 @@ hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
 <script>
 let S = {
   members:[], trips:[], debts:{},
-  settings:{ homeAddr:'', clubAddr:'', consumption:7.5, gasPrice:1.79, surcharge:0, homeAddrs:[], clubAddrs:[] },
+  settings:{ homeAddr:'', clubAddr:'', consumption:7.5, gasPrice:1.79, surcharge:0, homeAddrs:[], clubAddrs:[], theme:'dark' },
   presets:[]
 };
 
-// Per-trip overrides: { memberId: { addr: string|null, cameToMe: null|'spare'|'pays' } }
 let tripOverrides = {};
 let checkedIds = new Set();
 let chipModalId = null;
 let chipModalTemp = {};
 let payModalName = null;
-let tripHome = null; // null = use settings.homeAddr; otherwise id from settings.homeAddrs
-let tripClub = null; // null = use settings.clubAddr; otherwise id from settings.clubAddrs
-let tripDirection = 'there'; // 'there' = home→club, 'back' = club→home
+let tripHome = null;
+let tripClub = null;
+let tripDirection = 'there';
 
 function persist() { localStorage.setItem('carpool_v4', JSON.stringify(S)); }
 function hydrate() {
   const r = localStorage.getItem('carpool_v4');
   if (r) try { const d=JSON.parse(r); S={...S,...d}; S.settings={...S.settings,...(d.settings||{})}; } catch(e){}
+  applyTheme(S.settings.theme || 'dark', false);
+}
+
+/* ── THEME ── */
+function getCSSVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+function applyTheme(t, save) {
+  S.settings.theme = t;
+  document.documentElement.classList.add('theme-anim');
+  if (t === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  setTimeout(() => document.documentElement.classList.remove('theme-anim'), 420);
+  if (save !== false) persist();
+  const btnDark  = document.getElementById('btn-theme-dark');
+  const btnLight = document.getElementById('btn-theme-light');
+  if (btnDark)  btnDark.classList.toggle('active',  t !== 'light');
+  if (btnLight) btnLight.classList.toggle('active', t === 'light');
 }
 
 function showScreen(id, btn) {
@@ -372,7 +498,7 @@ function renderTrip() {
     el.innerHTML = '<div style="font-size:13px; color:var(--muted);">Add your crew in Settings first</div>';
     document.getElementById('maps-btn').style.display='none';
   } else {
-    el.innerHTML = S.members.map(m => {
+    el.innerHTML = S.members.map((m, idx) => {
       const ov = tripOverrides[m.id] || {};
       const isOn = checkedIds.has(m.id);
       let cls = isOn ? 'on' : '';
@@ -380,12 +506,11 @@ function renderTrip() {
       if (isOn && ov.cameToMe === 'spare') { cls='spared'; badge='<span class="chip-badge">free</span>'; }
       else if (isOn && ov.cameToMe === 'pays') { cls='came-pays'; badge='<span class="chip-badge">no detour</span>'; }
       else if (isOn && ov.addr) { badge='<span class="chip-badge">↻</span>'; }
-      return `<div class="chip ${cls}" onclick="${isOn ? `openChipModal(${m.id})` : `quickAddMember(${m.id})`}">
+      return `<div class="chip ${cls}" style="animation-delay:${idx*28}ms" onclick="${isOn ? `openChipModal(${m.id})` : `quickAddMember(${m.id})`}">
         <span class="pip"></span>${m.name}${badge}
       </div>`;
     }).join('');
-    const anyOn = checkedIds.size > 0;
-    document.getElementById('maps-btn').style.display = anyOn ? 'block' : 'none';
+    document.getElementById('maps-btn').style.display = checkedIds.size > 0 ? 'block' : 'none';
   }
   const pc = document.getElementById('preset-chips');
   pc.innerHTML = S.presets.map(p =>
@@ -400,7 +525,7 @@ function flipDirection() {
   tripDirection = tripDirection === 'there' ? 'back' : 'there';
   const icon = document.getElementById('dir-flip-icon');
   icon.classList.remove('flip-spinning');
-  void icon.offsetWidth; // reflow to restart animation
+  void icon.offsetWidth;
   icon.classList.add('flip-spinning');
   icon.addEventListener('animationend', () => icon.classList.remove('flip-spinning'), { once: true });
   const from = document.getElementById('dir-from');
@@ -435,8 +560,7 @@ function updatePreview() {
   if (!km || km<=0) { pv.style.display='none'; return; }
   const paying = [...checkedIds].map(id=>S.members.find(m=>m.id===id)).filter(m=>{
     if (!m) return false;
-    const ov = tripOverrides[m.id]||{};
-    return ov.cameToMe !== 'spare';
+    return (tripOverrides[m.id]||{}).cameToMe !== 'spare';
   });
   const spared = [...checkedIds].map(id=>S.members.find(m=>m.id===id)).filter(m=>{
     if (!m) return false;
@@ -448,8 +572,21 @@ function updatePreview() {
   const perFuel = fuel/total;
   const perSurch = paying.length ? surch/paying.length : 0;
   const perPass = perFuel+perSurch;
+  const wasHidden = pv.style.display !== 'block';
   pv.style.display='block';
-  document.getElementById('preview-big').textContent = paying.length ? `€${perPass.toFixed(2)}` : `€${fuel.toFixed(2)}`;
+  if (wasHidden) {
+    pv.classList.remove('entering');
+    void pv.offsetWidth;
+    pv.classList.add('entering');
+  }
+  const bigEl = document.getElementById('preview-big');
+  const newVal = paying.length ? `€${perPass.toFixed(2)}` : `€${fuel.toFixed(2)}`;
+  if (bigEl.textContent !== newVal) {
+    bigEl.textContent = newVal;
+    bigEl.classList.remove('pop');
+    void bigEl.offsetWidth;
+    bigEl.classList.add('pop');
+  }
   let sub = '';
   if (!checkedIds.size) {
     sub = `<b>${km} km</b> — riding solo`;
@@ -469,7 +606,6 @@ function renderRouteViz(km) {
   const homeLabel = homeAddr ? shortAddr(homeAddr) : 'Home';
   const clubLabel = clubAddr ? shortAddr(clubAddr) : 'Club';
 
-  // Build stops: home → [passengers] → club (reversed for 'back' direction)
   const midStops = [];
   [...checkedIds].forEach(id => {
     const m = S.members.find(m=>m.id===id);
@@ -495,7 +631,6 @@ function renderRouteViz(km) {
     ...s
   }));
 
-  // Build curved path through all points
   let pathD = `M ${pts[0].x} ${pts[0].y}`;
   for (let i=1; i<pts.length; i++) {
     const prev = pts[i-1], cur = pts[i];
@@ -506,8 +641,13 @@ function renderRouteViz(km) {
     pathD += ` C ${cx1} ${cy1} ${cx2} ${cy2} ${cur.x} ${cur.y}`;
   }
 
-  const dotColors = { home:'#e8674a', pickup:'#4ecdc4', club:'#7bc67a' };
-  const dotR = { home:7, pickup:6, club:7 };
+  const colHome    = getCSSVar('--coral');
+  const colPickup  = getCSSVar('--cyan');
+  const colClub    = getCSSVar('--green');
+  const colMuted   = getCSSVar('--muted');
+  const colMuted2  = getCSSVar('--muted2');
+  const dotColors  = { home: colHome, pickup: colPickup, club: colClub };
+  const dotR       = { home:7, pickup:6, club:7 };
 
   let dotsHTML = pts.map(p => {
     const r = dotR[p.type];
@@ -517,7 +657,7 @@ function renderRouteViz(km) {
     return `
       <circle cx="${p.x}" cy="${p.y}" r="${r+4}" fill="${col}" opacity="0.15"/>
       <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${col}"/>
-      ${p.sublabel ? `<text x="${p.x}" y="${subY}" text-anchor="middle" fill="#8a7e74" font-size="9" font-family="Instrument Sans,sans-serif">${p.sublabel}</text>` : ''}
+      ${p.sublabel ? `<text x="${p.x}" y="${subY}" text-anchor="middle" fill="${colMuted2}" font-size="9" font-family="Instrument Sans,sans-serif">${p.sublabel}</text>` : ''}
       <text x="${p.x}" y="${nameY}" text-anchor="middle" fill="${col}" font-size="11" font-weight="600" font-family="Instrument Sans,sans-serif">${p.label}</text>
     `;
   }).join('');
@@ -526,12 +666,12 @@ function renderRouteViz(km) {
     <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
       <defs>
         <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-          <path d="M0,0 L0,6 L6,3 z" fill="rgba(78,205,196,0.5)"/>
+          <path d="M0,0 L0,6 L6,3 z" fill="${colPickup}" opacity="0.5"/>
         </marker>
       </defs>
-      <path d="${pathD}" fill="none" stroke="rgba(78,205,196,0.25)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+      <path d="${pathD}" fill="none" stroke="${colPickup}" stroke-opacity="0.25" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
       ${dotsHTML}
-      <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="#8a7e74" font-size="10" font-family="Instrument Sans,sans-serif">${km} km total</text>
+      <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="${colMuted}" font-size="10" font-family="Instrument Sans,sans-serif">${km} km total</text>
     </svg>
     <div class="route-tap-hint">tap to open in Maps ↗</div>
   `;
@@ -553,15 +693,12 @@ function openChipModal(id) {
   const m = S.members.find(m=>m.id===id);
   const ov = tripOverrides[id]||{};
   chipModalTemp = { addr: ov.addr||'', cameToMe: ov.cameToMe||null, cameActive: !!(ov.cameToMe), wasChecked: checkedIds.has(id) };
-
   document.getElementById('cm-title').textContent = m.name;
   document.getElementById('cm-sub').textContent = m.addr ? `Saved: ${m.addr}` : 'No saved address';
   document.getElementById('cm-addr').value = chipModalTemp.addr;
   document.getElementById('btn-remove').style.display = chipModalTemp.wasChecked ? '' : 'none';
-
   updateCameStatus();
   document.getElementById('chip-overlay').classList.add('open');
-
   if (!checkedIds.has(id)) checkedIds.add(id);
 }
 
@@ -585,7 +722,6 @@ function updateCameStatus() {
   const toggleBtn = document.getElementById('came-toggle-btn');
   const subopts = document.getElementById('came-subopts');
   const status = document.getElementById('came-status');
-
   const addrInput = document.getElementById('cm-addr');
   if (chipModalTemp.cameActive) {
     toggleBtn.classList.add('coral');
@@ -599,11 +735,8 @@ function updateCameStatus() {
     addrInput.disabled = false;
     addrInput.placeholder = 'Leave blank to use saved address';
   }
-
-  // highlight selected sub-option
   document.getElementById('btn-spare').style.opacity = (!chipModalTemp.cameToMe || chipModalTemp.cameToMe === 'spare') ? '1' : '0.45';
   document.getElementById('btn-pays').style.opacity  = (!chipModalTemp.cameToMe || chipModalTemp.cameToMe === 'pays')  ? '1' : '0.45';
-
   if (chipModalTemp.cameToMe === 'spare') {
     status.innerHTML = '<span style="color:var(--amber);">✦ Free ride — not counted in split</span>';
   } else if (chipModalTemp.cameToMe === 'pays') {
@@ -656,7 +789,7 @@ function openMaps() {
     const m = S.members.find(m=>m.id===id);
     if (!m) return null;
     const ov = tripOverrides[id]||{};
-    if (ov.cameToMe) return null; // no detour
+    if (ov.cameToMe) return null;
     return enc(ov.addr || m.addr || '');
   }).filter(Boolean);
   const mid = stops.length ? stops.join('/') + '/' : '';
@@ -755,6 +888,12 @@ function renderSettings() {
   document.getElementById('s-cons').value=S.settings.consumption||7.5;
   document.getElementById('s-gas').value=S.settings.gasPrice||1.79;
   document.getElementById('s-surch').value=S.settings.surcharge||0;
+
+  const t = S.settings.theme || 'dark';
+  const btnDark  = document.getElementById('btn-theme-dark');
+  const btnLight = document.getElementById('btn-theme-light');
+  if (btnDark)  btnDark.classList.toggle('active',  t !== 'light');
+  if (btnLight) btnLight.classList.toggle('active', t === 'light');
 
   const homeAddrs = S.settings.homeAddrs||[];
   const clubAddrs = S.settings.clubAddrs||[];
