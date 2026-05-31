@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Carpool</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -19,6 +19,9 @@
   --amber:#d4a85a; --amber-bg:rgba(212,168,90,0.1); --amber-bd:rgba(212,168,90,0.25);
   --overlay-bg:rgba(6,7,18,0.88);
   --r:14px; --r-sm:8px;
+  --glow-soft:rgba(74,114,245,0.07); --glow-mid:rgba(74,114,245,0.22); --glow-strong:rgba(74,114,245,0.42);
+  --nav-bg:rgba(11,13,25,0.84);
+  --card-shadow:0 2px 10px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.035);
 }
 
 /* ── LIGHT — Warm Beige ── */
@@ -31,14 +34,17 @@ html[data-theme="light"] {
   --green:#1a6b19; --green-bg:rgba(26,107,25,0.08); --green-bd:rgba(26,107,25,0.2);
   --amber:#8b5f0c; --amber-bg:rgba(139,95,12,0.08); --amber-bd:rgba(139,95,12,0.2);
   --overlay-bg:rgba(15,15,35,0.62);
+  --glow-soft:rgba(26,60,200,0.04); --glow-mid:rgba(26,60,200,0.11); --glow-strong:rgba(26,60,200,0.2);
+  --nav-bg:rgba(232,225,205,0.88);
+  --card-shadow:0 1px 3px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.55);
 }
 
-body { background:var(--bg); color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:15px; min-height:100vh; -webkit-font-smoothing:antialiased; }
+body { background-color:var(--bg); background-image:radial-gradient(ellipse 90% 50% at 50% 0%, var(--glow-soft) 0%, transparent 68%); color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:15px; min-height:100vh; -webkit-font-smoothing:antialiased; }
 
 /* ── BOTTOM NAV ── */
-nav { position:fixed; bottom:0; left:0; right:0; z-index:50; display:flex; background:var(--bg2); border-top:1px solid var(--border); padding:0 4px; padding-bottom:env(safe-area-inset-bottom,0px); }
+nav { position:fixed; bottom:0; left:0; right:0; z-index:50; display:flex; background:var(--nav-bg); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border-top:1px solid var(--border2); padding:0 4px; padding-bottom:env(safe-area-inset-bottom,0px); }
 nav button { flex:1; padding:13px 6px 12px; background:none; border:none; font-family:'Instrument Sans',sans-serif; font-size:12px; font-weight:500; color:var(--muted); letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; transition:color 0.15s; border-top:2px solid transparent; margin-top:-1px; }
-nav button.active { color:var(--coral); border-top-color:var(--coral); }
+nav button.active { color:var(--coral); border-top-color:var(--coral); text-shadow:0 0 14px var(--glow-mid); }
 nav button:hover:not(.active) { color:var(--muted2); }
 
 .screen { display:none; padding:20px 16px 90px; max-width:500px; margin:0 auto; }
@@ -48,7 +54,7 @@ nav button:hover:not(.active) { color:var(--muted2); }
 .page-title { font-family:'Fraunces',serif; font-size:26px; font-weight:300; font-style:italic; color:var(--text); margin-bottom:20px; }
 .page-title span { color:var(--coral); }
 
-input[type=text],input[type=number] { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:var(--r-sm); padding:11px 14px; color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:15px; outline:none; transition:border-color 0.15s; -moz-appearance:textfield; }
+input[type=text],input[type=number] { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:var(--r-sm); padding:11px 14px; color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:16px; outline:none; transition:border-color 0.15s; -moz-appearance:textfield; }
 input::-webkit-inner-spin-button { -webkit-appearance:none; }
 input:focus { border-color:var(--border2); }
 input::placeholder { color:var(--muted); }
@@ -68,8 +74,9 @@ input::placeholder { color:var(--muted); }
 .btn.ghost:hover { color:var(--muted2); background:var(--bg3); }
 .btn.danger { background:none; border-color:transparent; color:#c0574a; font-size:13px; padding:8px 10px; }
 .btn.danger:hover { background:rgba(192,87,74,0.1); }
-.btn.maps-btn { background:var(--cyan-bg); border-color:var(--cyan-bd); color:var(--cyan); font-size:13px; width:100%; margin-top:10px; }
+.btn.maps-btn { background:var(--cyan-bg); border-color:var(--cyan-bd); color:var(--cyan); font-size:13px; width:100%; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px; position:relative; overflow:hidden; }
 .btn.maps-btn:hover { background:var(--cyan-bg); filter:brightness(1.15); }
+.btn.maps-btn::after { content:''; position:absolute; top:0; bottom:0; left:-80%; width:45%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent); animation:shimmerSweep 2.8s ease-in-out infinite; pointer-events:none; }
 .btn.spare { background:var(--amber-bg); border-color:var(--amber-bd); color:var(--amber); }
 .btn.spare:hover { background:var(--amber-bg); filter:brightness(1.15); }
 .btn.still-pay { background:var(--coral-bg); border-color:var(--coral-bd); color:var(--coral2); }
@@ -220,6 +227,7 @@ hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
 html.theme-anim body,
 html.theme-anim nav,
 html.theme-anim .card,
+html.theme-anim .preview,
 html.theme-anim .modal,
 html.theme-anim input,
 html.theme-anim .btn,
@@ -235,7 +243,7 @@ html.theme-anim .dir-btn,
 html.theme-anim .preset-chip,
 html.theme-anim .debt-name,
 html.theme-anim .preview {
-  transition:background-color 0.32s ease,border-color 0.28s ease,color 0.24s ease !important;
+  transition:background-color 0.32s ease,border-color 0.28s ease,color 0.24s ease,box-shadow 0.3s ease,text-shadow 0.3s ease !important;
 }
 
 /* Debt amount tap ripple */
@@ -246,6 +254,35 @@ html.theme-anim .preview {
 }
 .debt-amount { transition:text-decoration-color 0.15s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1); }
 .debt-amount:active { transform:scale(0.95); }
+
+/* ── ROYAL NIGHT DEPTH ── */
+
+/* Cards get depth */
+.card { box-shadow:var(--card-shadow); }
+.preview { box-shadow:var(--card-shadow); }
+
+/* Coral button glow */
+.btn.coral { box-shadow:0 4px 22px var(--glow-mid), inset 0 1px 0 rgba(255,255,255,0.07); }
+.btn.coral:hover { box-shadow:0 6px 30px var(--glow-strong), inset 0 1px 0 rgba(255,255,255,0.07); }
+
+/* Active chip glow */
+.chip.on { box-shadow:0 2px 14px var(--glow-soft); }
+
+/* Preview number glow */
+.preview-big { text-shadow:0 0 40px var(--glow-mid); }
+
+/* Page title accent glow */
+.page-title span { text-shadow:0 0 28px var(--glow-mid); }
+
+/* Shimmer sweep for maps button */
+@keyframes shimmerSweep {
+  0%   { left:-80%; }
+  55%  { left:135%; }
+  100% { left:135%; }
+}
+
+/* Dir button glows when going back */
+.dir-btn.back { box-shadow:0 2px 12px rgba(78,205,196,0.12); }
 </style>
 </head>
 <body>
@@ -259,7 +296,7 @@ html.theme-anim .preview {
     <div class="chips" id="crew-chips">
       <div style="font-size:13px; color:var(--muted);">Add your crew in Settings first</div>
     </div>
-    <button class="btn maps-btn" id="maps-btn" onclick="openMaps()" style="display:none;">↗ Open route in Google Maps</button>
+    <button class="btn maps-btn" id="maps-btn" onclick="openMaps()" style="display:none;"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0"><path d="M1.5 11.5L11.5 1.5M11.5 1.5H4.5M11.5 1.5V8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Open route in Google Maps</button>
   </div>
 
   <div id="direction-btn" class="dir-btn" onclick="flipDirection()">
@@ -305,7 +342,7 @@ html.theme-anim .preview {
 <div id="s-debts" class="screen">
   <div class="page-title">Who <span>owes</span> you</div>
   <div class="card" id="debts-card"><div id="debts-body"></div></div>
-  <div class="empty" id="debts-empty" style="display:none;">All settled up ✦</div>
+  <div class="empty" id="debts-empty" style="display:none;">All settled up</div>
 </div>
 
 <!-- LOG -->
@@ -402,8 +439,8 @@ html.theme-anim .preview {
       <div id="came-subopts" style="display:none; margin-top:12px;">
         <div class="came-label" style="margin-bottom:8px;">So...</div>
         <div class="came-btns">
-          <button class="btn spare" id="btn-spare" onclick="setCameToMe('spare')">🎁 Spare them</button>
-          <button class="btn still-pay" id="btn-pays" onclick="setCameToMe('pays')">💸 They still pay</button>
+          <button class="btn spare" id="btn-spare" onclick="setCameToMe('spare')">Spare them</button>
+          <button class="btn still-pay" id="btn-pays" onclick="setCameToMe('pays')">They still pay</button>
         </div>
       </div>
       <div id="came-status" style="margin-top:10px; font-size:12px; color:var(--muted2); min-height:18px;"></div>
@@ -510,7 +547,7 @@ function renderTrip() {
         <span class="pip"></span>${m.name}${badge}
       </div>`;
     }).join('');
-    document.getElementById('maps-btn').style.display = checkedIds.size > 0 ? 'block' : 'none';
+    document.getElementById('maps-btn').style.display = checkedIds.size > 0 ? 'flex' : 'none';
   }
   const pc = document.getElementById('preset-chips');
   pc.innerHTML = S.presets.map(p =>
@@ -673,7 +710,7 @@ function renderRouteViz(km) {
       ${dotsHTML}
       <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="${colMuted}" font-size="10" font-family="Instrument Sans,sans-serif">${km} km total</text>
     </svg>
-    <div class="route-tap-hint">tap to open in Maps ↗</div>
+    <div class="route-tap-hint">tap to open in Maps</div>
   `;
 }
 
@@ -738,9 +775,9 @@ function updateCameStatus() {
   document.getElementById('btn-spare').style.opacity = (!chipModalTemp.cameToMe || chipModalTemp.cameToMe === 'spare') ? '1' : '0.45';
   document.getElementById('btn-pays').style.opacity  = (!chipModalTemp.cameToMe || chipModalTemp.cameToMe === 'pays')  ? '1' : '0.45';
   if (chipModalTemp.cameToMe === 'spare') {
-    status.innerHTML = '<span style="color:var(--amber);">✦ Free ride — not counted in split</span>';
+    status.innerHTML = '<span style="color:var(--amber);">Free ride — not counted in split</span>';
   } else if (chipModalTemp.cameToMe === 'pays') {
-    status.innerHTML = '<span style="color:var(--cyan);">✦ Pays their share — no detour added to route</span>';
+    status.innerHTML = '<span style="color:var(--cyan);">Pays their share — no detour added to route</span>';
   } else if (chipModalTemp.cameActive) {
     status.innerHTML = '<span style="color:var(--muted2);">Pick an option above</span>';
   } else {
