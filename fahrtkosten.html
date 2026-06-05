@@ -477,7 +477,10 @@ html.theme-anim .preview {
       </div>
     </div>
     <hr>
-    <button class="btn ghost full" onclick="closePayModal()">Cancel</button>
+    <div style="display:flex; gap:8px;">
+      <button class="btn ghost" style="flex:1;" onclick="closePayModal()">Cancel</button>
+      <button class="btn danger" onclick="deleteDebt()">Remove entry</button>
+    </div>
   </div>
 </div>
 
@@ -1030,6 +1033,10 @@ function applyPayment() {
   const amt=parseFloat(document.getElementById('pay-custom').value);
   if (!amt||amt<=0) { closePayModal(); return; }
   S.debts[payModalName]=+((S.debts[payModalName]||0)-amt).toFixed(2);
+  persist(); closePayModal(); renderDebts();
+}
+function deleteDebt() {
+  delete S.debts[payModalName];
   persist(); closePayModal(); renderDebts();
 }
 function closePayModal() {
