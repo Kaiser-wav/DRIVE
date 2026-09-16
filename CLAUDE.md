@@ -35,7 +35,8 @@ S = {
     totalCost: number,      // fuel cost only
     perPerson: number,      // what each paying passenger owes
     passengers: string[],   // names of paying passengers
-    spared: string[]        // names of passengers who rode free
+    spared: string[],       // names of passengers who rode free
+    dir: 'there'|'back'     // which leg (absent on trips logged before this existed)
   }],
   debts: { [name: string]: number },  // positive = owes you, negative = credit
   settings: {
@@ -45,7 +46,17 @@ S = {
     gasPrice: number,      // €/L
     surcharge: number      // €/km extra charged to passengers only
   },
-  presets: [{ id: number, name: string, km: number }]
+  presets: [{ id: number, name: string, km: number }],
+
+  // learned distances — see "Auto distance" below
+  routeMemory: { [signature: string]: { km: number, n: number, ts: number } },
+
+  // set when Maps is opened, cleared when the trip is logged or discarded
+  pendingDrive: null | {
+    startedAt: number, km: number|null, kmSource: string|null,
+    direction: 'there'|'back', home: number|null, club: number|null,
+    crew: number[], overrides: tripOverrides   // snapshot, see below
+  }
 }
 ```
 
@@ -63,6 +74,36 @@ tripOverrides = {
   }
 }
 ```
+
+---
+
+`pendingDrive.overrides` is the one exception to "not persisted" — it's a snapshot so an
+armed drive survives the tab being killed when the user switches to Google Maps.
+
+---
+
+## Auto distance (route memory)
+The app has no geocoding API, so distances are **learned, not fetched**. Every logged trip
+writes its km to `S.routeMemory` under a signature built by `routeSignature()`:
+
+```
+"<homeAddr>|<sorted pickup addresses>|<clubAddr>"   — all lowercased/trimmed
+```
+
+- Direction is deliberately **not** part of the signature — there and back cover the same
+  ground, so a distance learned one way auto-fills the other.
+- Members with `cameToMe` set are excluded (no detour → no effect on distance).
+- A member with no address falls back to their name, so crew identity still differentiates.
+
+`applyAutoKm()` fills the km field from memory, but only while `kmSource` is `null` or
+`'auto'` — a number the user typed (`'manual'`) or picked from a preset (`'preset'`) is
+never overwritten. `kmSource` is module-level session state.
+
+## Pending drive flow
+`openMaps()` → `armPendingDrive()` snapshots the trip and persists it → on return (or a
+fresh page load, via `restorePendingDrive()`) the crew/route/km are restored and
+`renderPending()` shows a banner with one-tap **Log trip** / **Log there + back** /
+**Discard**. Armed drives older than `PENDING_MAX_AGE` (12h) are dropped silently.
 
 ---
 
@@ -90,14 +131,19 @@ spared people = ride free, not counted in total_people
 ## Key functions
 | Function | What it does |
 |---|---|
-| `renderTrip()` | Re-renders crew chips, preset chips, calls `updatePreview()` |
+| `renderTrip()` | Re-renders crew chips, preset chips, calls `applyAutoKm()` + `updatePreview()` |
 | `updatePreview()` | Calculates split, renders big number + route viz SVG |
+| `calcSplit(km)` | **Single source of truth for the split math** — used by preview, banner and `logTrip()` |
+| `routeSignature()` / `rememberRoute(km)` | Build the route key / store the learned km |
+| `applyAutoKm()` / `renderKmHint()` | Auto-fill km from memory / explain where the number came from |
+| `armPendingDrive()` / `restorePendingDrive()` / `renderPending()` | The open-Maps-then-log-on-return flow |
+| `repeatLastTrip()` | Restores the crew + km of the most recent trip in one tap |
 | `renderRouteViz(km)` | Draws the SVG path from home → pickups → club |
 | `openChipModal(id)` | Opens per-person config modal |
 | `setCameToMe(mode)` | Sets spare/pays state in chipModalTemp |
 | `closeChipModal(confirm)` | Writes chipModalTemp to tripOverrides if confirmed |
-| `logTrip()` | Saves trip, updates debts, resets session state |
-| `openMaps()` | Builds Google Maps URL with waypoints, opens in new tab |
+| `logTrip(legs)` | Saves 1 or 2 legs, updates debts, learns the route km, resets session state |
+| `openMaps()` | Builds Google Maps URL with waypoints, arms the pending drive, opens in new tab |
 | `openPayModal(name)` | Opens debt payment modal for a crew member |
 | `persist()` / `hydrate()` | Save/load S to localStorage |
 
@@ -112,7 +158,8 @@ Stops are URL-encoded addresses. Members with `cameToMe` set (either mode) are e
 ---
 
 ## Things to keep in mind when editing
-- **localStorage key is `carpool_v4`** — if you change the state shape significantly, bump this to `carpool_v5` to avoid hydration errors from old saved data
+- **localStorage key is `carpool_v4`** — if you change the state shape significantly, bump this to `carpool_v5` to avoid hydration errors from old saved data. Purely *additive* keys (like `routeMemory`) don't need a bump — `hydrate()` spreads over the defaults — and bumping would orphan the user's real debt balances, so don't do it lightly
+- **`calcSplit()` is the only place the split formula lives** — preview, pending banner and `logTrip()` all call it, so they can't drift apart
 - **SVG route viz** is built dynamically in `renderRouteViz()` — viewBox is `0 0 460 110`, nodes spaced evenly across the width with `pad=36`
 - **No `position:fixed`** anywhere — the app is designed to be saved as a local file and opened in a mobile browser; fixed positioning causes issues in some mobile browsers
 - **Single file constraint** — keep everything in one HTML file; don't split into separate CSS/JS files unless the user explicitly asks to set up a proper project
@@ -122,7 +169,7 @@ Stops are URL-encoded addresses. Members with `cameToMe` set (either mode) are e
 ## Common tasks
 **Add a new field to member profiles** → update `addMember()`, the member object shape, `renderSettings()` members-list HTML, and `renderTrip()` chip modal
 
-**Change the split formula** → edit `updatePreview()` and `logTrip()` (both must use identical logic)
+**Change the split formula** → edit `calcSplit()` only — preview, banner and `logTrip()` all read from it
 
 **Add a new chip visual state** → add CSS class, add color vars if needed, update `renderTrip()` chip class logic
 
