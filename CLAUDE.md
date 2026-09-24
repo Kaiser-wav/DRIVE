@@ -127,11 +127,24 @@ the live amount. With no home/club address set, the primary degrades to a plain 
 trip** and the quiet row becomes a hint pointing at Settings. `buildMapsUrl()` returns
 `null` instead of alerting, so callers decide what to do about a missing address.
 
+## One trip = one one-way leg
+**A logged trip is always one direction.** The way back is a separate trip, because the
+crew going home is often not the crew that came out — someone gets picked up by a parent,
+someone stays late. That is what the direction switcher is for, and it is why there is no
+round-trip or "log both legs" shortcut anywhere: it would charge the outbound crew for a
+ride some of them never took. `logTrip()` takes no leg count.
+
+After an outbound trip is logged, `returnPrompt` (session-only) offers to **set up** the
+way back — flipped direction, same crew and km as a starting point, nothing logged until
+the user acts. `setupReturn()` restores that into the form; `dismissReturn()` and any
+manual `flipDirection()` clear it.
+
 ## Pending drive flow
 `openMapsOnly()` → `armPendingDrive()` snapshots the trip and persists it → on return (or
 a fresh page load, via `restorePendingDrive()`) the crew/route/km are restored and
 `renderPending()` shows a banner with one-tap **Log trip** / **Log there + back** /
-**Discard**. Armed drives older than `PENDING_MAX_AGE` (12h) are dropped silently.
+**Discard** — one leg only. Armed drives older than `PENDING_MAX_AGE` (12h) are dropped
+silently.
 `primaryAction()` deliberately does *not* arm — it has already logged the trip.
 
 ---
@@ -170,11 +183,12 @@ spared people = ride free, not counted in total_people
 | `applyAutoKm()` / `renderKmHint()` | Auto-fill km from memory / explain where the number came from |
 | `armPendingDrive()` / `restorePendingDrive()` / `renderPending()` | The open-Maps-then-log-on-return flow |
 | `repeatLastTrip()` | Restores the crew + km of the most recent trip in one tap |
+| `setupReturn()` / `dismissReturn()` / `renderReturnPrompt()` | The offer to set up the way back as its own trip |
 | `renderRouteViz(km)` | Draws the SVG path from home → pickups → club |
 | `openChipModal(id)` | Opens per-person config modal |
 | `setCameToMe(mode)` | Sets spare/pays state in chipModalTemp |
 | `closeChipModal(confirm)` | Writes chipModalTemp to tripOverrides if confirmed |
-| `logTrip(legs)` | Saves 1 or 2 legs, updates debts, learns the route km, resets session state |
+| `logTrip()` | Saves one one-way trip, updates debts, learns the route km, resets session state |
 | `openPayModal(name)` | Opens debt payment modal for a crew member |
 | `persist()` / `hydrate()` | Save/load S to localStorage |
 
@@ -199,6 +213,8 @@ Stops are URL-encoded addresses. Members with `cameToMe` set (either mode) are e
 
 ## Common tasks
 **Add a new field to member profiles** → update `addMember()`, the member object shape, `renderSettings()` members-list HTML, and `renderTrip()` chip modal
+
+**Never add a round-trip shortcut** → see "One trip = one one-way leg"; the crew can differ per direction
 
 **Change the split formula** → edit `calcSplit()` only — preview, banner and `logTrip()` all read from it
 

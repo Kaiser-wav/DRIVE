@@ -124,6 +124,11 @@ input::placeholder { color:var(--muted); }
 .btn.coral.idle:hover { background:var(--bg4); filter:none; }
 .action-note { font-size:11px; color:var(--muted); text-align:center; margin-top:9px; line-height:1.5; }
 
+/* Offer to set up the way back — a separate one-way trip, never assumed */
+.return-prompt { display:none; margin-top:16px; background:var(--bg2); border:1px solid var(--violet-bd); border-radius:var(--r); padding:15px 16px; animation:previewReveal 0.3s cubic-bezier(0.2,0,0,1); }
+.rp-text { font-size:14px; font-weight:500; color:var(--violet); line-height:1.4; margin-bottom:12px; }
+.rp-sub { font-size:12px; font-weight:400; color:var(--muted); margin-top:5px; line-height:1.5; }
+
 /* ── PENDING DRIVE (armed by opening Maps) ── */
 .pending { display:none; background:var(--bg2); border:1px solid var(--cyan-bd); border-radius:var(--r); padding:16px; margin-bottom:16px; box-shadow:var(--card-shadow); }
 .pending.entering { animation:previewReveal 0.3s cubic-bezier(0.2,0,0,1); }
@@ -381,6 +386,8 @@ html.theme-anim .preview {
     <button class="btn coral full" id="save-btn" onclick="primaryAction()">Save trip</button>
     <div class="action-row" id="action-row"></div>
   </div>
+
+  <div class="return-prompt" id="return-prompt"></div>
 </div>
 
 <!-- DEBTS -->
@@ -540,6 +547,7 @@ let tripHome = null;
 let tripClub = null;
 let tripDirection = 'there';
 let kmSource = null;   // null | 'auto' | 'manual' | 'preset'
+let returnPrompt = null;  // session-only nudge to log the way back
 
 const PENDING_MAX_AGE = 12*60*60*1000;  // an armed drive older than this is dropped
 
@@ -610,6 +618,7 @@ function renderTrip() {
   renderRouteSelector();
   updateDirectionBtn();
   renderRepeatBtn();
+  renderReturnPrompt();
   applyAutoKm();
   updatePreview();
 }
@@ -644,6 +653,8 @@ function repeatLastTrip() {
 
 function flipDirection() {
   tripDirection = tripDirection === 'there' ? 'back' : 'there';
+  returnPrompt = null;   // they're steering the direction themselves now
+  renderReturnPrompt();
   const icon = document.getElementById('dir-flip-icon');
   icon.classList.remove('flip-spinning');
   void icon.offsetWidth;
@@ -1027,11 +1038,11 @@ function primaryAction() {
   if (!km || km<=0) { focusKmInput(); return; }
   const url = buildMapsUrl();
   if (url) window.open(url, '_blank');
-  logTrip(1);
+  logTrip();
 }
 
 // Quiet button: log without touching Maps.
-function logOnly() { logTrip(1); }
+function logOnly() { logTrip(); }
 
 // Quiet button: the original workflow — open the route, log it when you're
 // back. Arms the pending banner so the trip survives the trip to Maps.
@@ -1104,9 +1115,8 @@ function renderPending() {
   if (km > 0) {
     const per = +calcSplit(km).perPass.toFixed(2);
     actions = `
-      <button class="btn coral full" onclick="logTrip(1)">Log trip — €${per.toFixed(2)} each</button>
+      <button class="btn coral full" onclick="logTrip()">Log trip — €${per.toFixed(2)} each</button>
       <div class="pending-row">
-        <button class="btn" onclick="logTrip(2)">Log there + back — €${(per*2).toFixed(2)} each</button>
         <button class="btn ghost" onclick="discardPendingDrive()">Discard</button>
       </div>`;
   } else {
@@ -1135,32 +1145,38 @@ function renderPending() {
 document.addEventListener('visibilitychange', () => { if (!document.hidden) renderPending(); });
 
 /* ── LOG TRIP ── */
-function logTrip(legs) {
-  legs = legs === 2 ? 2 : 1;
+// One call = one one-way trip. The way back is always logged separately,
+// because the crew coming home is often not the crew that came out.
+function logTrip() {
   const km = parseFloat(document.getElementById('km-input').value);
   if (!km||km<=0) { alert('Enter kilometers first'); focusKmInput(); return; }
-  const s = calcSplit(km);
-  const { paying, spared, fuel } = s;
-  const perPass = +s.perPass.toFixed(2);
+  const { paying, spared, fuel, perPass: rawPer } = calcSplit(km);
+  const perPass = +rawPer.toFixed(2);
 
   rememberRoute(km);
 
-  const now = Date.now();
-  const date = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
-  for (let i=0; i<legs; i++) {
-    const dir = i===0 ? tripDirection : (tripDirection==='there' ? 'back' : 'there');
-    S.trips.unshift({
-      id: now+i,
-      date,
-      km, totalCost:+fuel.toFixed(2), perPerson:perPass,
-      passengers:paying.map(p=>p.name),
-      spared:spared.map(p=>p.name),
-      dir
-    });
-    paying.forEach(p => { S.debts[p.name] = +((S.debts[p.name]||0)+perPass).toFixed(2); });
-  }
+  S.trips.unshift({
+    id: Date.now(),
+    date: new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),
+    km, totalCost:+fuel.toFixed(2), perPerson:perPass,
+    passengers:paying.map(p=>p.name),
+    spared:spared.map(p=>p.name),
+    dir: tripDirection
+  });
+  paying.forEach(p => { S.debts[p.name] = +((S.debts[p.name]||0)+perPass).toFixed(2); });
   S.pendingDrive = null;
   persist();
+
+  // Offer the way back as a starting point — same crew, flipped route, still
+  // fully editable before it's logged.
+  returnPrompt = tripDirection === 'there' ? {
+    crew: [...checkedIds],
+    overrides: JSON.parse(JSON.stringify(tripOverrides)),
+    km, home: tripHome, club: tripClub,
+    names: paying.concat(spared).map(p=>p.name),
+    from: activeTripHome() ? shortAddr(activeTripHome()) : 'Home',
+    to:   activeTripClub() ? shortAddr(activeTripClub()) : 'Club'
+  } : null;
 
   checkedIds.clear();
   tripOverrides = {};
@@ -1172,10 +1188,41 @@ function logTrip(legs) {
   renderTrip();
 
   const btn = document.getElementById('save-btn');
-  btn.textContent = legs===2 ? '✓ Both legs logged' : '✓ Logged';
+  btn.textContent = '✓ Logged';
   btn.classList.add('saved');
   setTimeout(()=>{ btn.classList.remove('saved'); renderActions(); }, 1500);
 }
+
+/* ── RETURN LEG ── */
+function renderReturnPrompt() {
+  const el = document.getElementById('return-prompt');
+  if (!returnPrompt) { el.style.display='none'; el.innerHTML=''; return; }
+  const who = returnPrompt.names.length ? returnPrompt.names.join(', ') : 'nobody';
+  el.innerHTML = `
+    <div class="rp-text">Logged the way there. Now the way back?
+      <div class="rp-sub">Starts from the same crew (${who}) — change who's coming before you log it</div>
+    </div>
+    <div class="pending-row">
+      <button class="btn" onclick="setupReturn()">Set up ${returnPrompt.to} → ${returnPrompt.from}</button>
+      <button class="btn ghost" onclick="dismissReturn()">Not now</button>
+    </div>`;
+  el.style.display='block';
+}
+
+function setupReturn() {
+  const r = returnPrompt;
+  returnPrompt = null;
+  tripDirection = 'back';
+  tripHome = r.home;
+  tripClub = r.club;
+  checkedIds = new Set(r.crew.filter(id => S.members.some(m=>m.id===id)));
+  tripOverrides = r.overrides;
+  document.getElementById('km-input').value = r.km;
+  kmSource = 'manual';
+  renderTrip();
+}
+
+function dismissReturn() { returnPrompt = null; renderReturnPrompt(); }
 
 /* ── DEBTS ── */
 function renderDebts() {
