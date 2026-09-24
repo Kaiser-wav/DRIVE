@@ -99,11 +99,40 @@ writes its km to `S.routeMemory` under a signature built by `routeSignature()`:
 `'auto'` — a number the user typed (`'manual'`) or picked from a preset (`'preset'`) is
 never overwritten. `kmSource` is module-level session state.
 
+## Trip screen layout
+The screen reads top to bottom as **set up → see the outcome → act**:
+
+```
+1  Who's coming?   crew chips + "same as last time"
+2  Route           direction button + alternative from/to chips
+3  Distance        km input + auto-fill hint + presets
+   This trip       the outcome panel (#preview) — cost, km, fuel, route drawing
+   actions         one loud button, two quiet ones
+```
+
+The numbered `<span class="step">` markers live in the `.label` of each input section;
+the outcome label uses `.label.outcome`. The outcome panel shows as soon as there is a
+route to draw or a crew selected — not only once km is filled in — so the km placeholder
+state is a real state (`.preview-big.idle`, `renderRouteViz(null)`).
+
+## The three actions
+| Button | Function | Behaviour |
+|---|---|---|
+| Loud, full width | `primaryAction()` | Opens Maps **and** logs the trip in one tap |
+| Quiet, left | `logOnly()` | Logs, never touches Maps |
+| Quiet, right | `openMapsOnly()` | Opens Maps only — the original workflow, arms the pending banner |
+
+`renderActions()` rebuilds them on every `updatePreview()`, so the primary always carries
+the live amount. With no home/club address set, the primary degrades to a plain **Log
+trip** and the quiet row becomes a hint pointing at Settings. `buildMapsUrl()` returns
+`null` instead of alerting, so callers decide what to do about a missing address.
+
 ## Pending drive flow
-`openMaps()` → `armPendingDrive()` snapshots the trip and persists it → on return (or a
-fresh page load, via `restorePendingDrive()`) the crew/route/km are restored and
+`openMapsOnly()` → `armPendingDrive()` snapshots the trip and persists it → on return (or
+a fresh page load, via `restorePendingDrive()`) the crew/route/km are restored and
 `renderPending()` shows a banner with one-tap **Log trip** / **Log there + back** /
 **Discard**. Armed drives older than `PENDING_MAX_AGE` (12h) are dropped silently.
+`primaryAction()` deliberately does *not* arm — it has already logged the trip.
 
 ---
 
@@ -132,7 +161,10 @@ spared people = ride free, not counted in total_people
 | Function | What it does |
 |---|---|
 | `renderTrip()` | Re-renders crew chips, preset chips, calls `applyAutoKm()` + `updatePreview()` |
-| `updatePreview()` | Calculates split, renders big number + route viz SVG |
+| `updatePreview()` | Calculates split, renders the outcome panel + route viz SVG, calls `renderActions()` |
+| `renderActions()` | Rebuilds the loud/quiet button stack with the live amount |
+| `primaryAction()` / `logOnly()` / `openMapsOnly()` | The three actions — see the table above |
+| `buildMapsUrl()` | Builds the Maps URL, or `null` if home/club addresses are missing |
 | `calcSplit(km)` | **Single source of truth for the split math** — used by preview, banner and `logTrip()` |
 | `routeSignature()` / `rememberRoute(km)` | Build the route key / store the learned km |
 | `applyAutoKm()` / `renderKmHint()` | Auto-fill km from memory / explain where the number came from |
@@ -143,7 +175,6 @@ spared people = ride free, not counted in total_people
 | `setCameToMe(mode)` | Sets spare/pays state in chipModalTemp |
 | `closeChipModal(confirm)` | Writes chipModalTemp to tripOverrides if confirmed |
 | `logTrip(legs)` | Saves 1 or 2 legs, updates debts, learns the route km, resets session state |
-| `openMaps()` | Builds Google Maps URL with waypoints, arms the pending drive, opens in new tab |
 | `openPayModal(name)` | Opens debt payment modal for a crew member |
 | `persist()` / `hydrate()` | Save/load S to localStorage |
 

@@ -82,9 +82,6 @@ input::placeholder { color:var(--muted); }
 .btn.ghost:hover { color:var(--muted2); background:var(--bg3); }
 .btn.danger { background:none; border-color:transparent; color:#c0574a; font-size:13px; padding:8px 10px; }
 .btn.danger:hover { background:rgba(192,87,74,0.1); }
-.btn.maps-btn { background:var(--cyan-bg); border-color:var(--cyan-bd); color:var(--cyan); font-size:13px; width:100%; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px; position:relative; overflow:hidden; }
-.btn.maps-btn:hover { background:var(--cyan-bg); filter:brightness(1.15); }
-.btn.maps-btn::after { content:''; position:absolute; top:0; bottom:0; left:-80%; width:45%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent); animation:shimmerSweep 2.8s ease-in-out infinite; pointer-events:none; }
 .btn.repeat { width:100%; margin-top:10px; background:none; border-style:dashed; border-color:var(--border2); color:var(--muted2); font-size:13px; }
 .btn.repeat:hover { background:var(--bg3); color:var(--text); }
 .btn.spare { background:var(--amber-bg); border-color:var(--amber-bd); color:var(--amber); }
@@ -93,6 +90,7 @@ input::placeholder { color:var(--muted); }
 .btn.still-pay:hover { background:var(--coral-bg); filter:brightness(1.15); }
 
 .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.chips:last-child { margin-bottom:0; }
 .chip { display:flex; align-items:center; gap:7px; padding:9px 16px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); cursor:pointer; font-size:14px; font-weight:500; transition:border-color 0.2s,background-color 0.2s,color 0.2s,transform 0.24s cubic-bezier(0.22,1,0.36,1),box-shadow 0.24s; user-select:none; color:var(--muted2); position:relative; animation:chipIn 0.3s cubic-bezier(0.22,1,0.36,1) both; }
 .chip:active { transform:scale(0.94); }
 .chip .pip { width:6px; height:6px; border-radius:50%; background:var(--bg4); transition:background 0.15s; flex-shrink:0; }
@@ -104,10 +102,27 @@ input::placeholder { color:var(--muted); }
 .chip.came-pays .pip { background:var(--cyan); }
 .chip-badge { font-size:9px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; opacity:0.75; margin-left:2px; }
 
-.preview { background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:16px 18px; margin:12px 0; display:none; }
-.preview-big { font-family:'Fraunces',serif; font-size:38px; font-weight:300; color:var(--coral); line-height:1; margin-bottom:6px; }
-.preview-sub { font-size:13px; color:var(--muted2); line-height:1.6; }
+.preview { background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:16px 18px; margin:0 0 14px; display:none; }
+.preview-big { font-family:'Fraunces',serif; font-size:38px; font-weight:300; color:var(--coral); line-height:1; margin-bottom:5px; }
+.preview-cap { font-size:12px; color:var(--muted); letter-spacing:0.05em; }
+.preview-stats { display:flex; flex-wrap:wrap; gap:4px 18px; margin-top:14px; padding-top:13px; border-top:1px solid var(--border); font-size:12px; color:var(--muted); letter-spacing:0.02em; }
+.preview-stats b { font-family:'Fraunces',serif; font-size:16px; font-weight:400; color:var(--text); margin-right:4px; }
+.preview-sub { font-size:13px; color:var(--muted2); line-height:1.6; margin-top:10px; }
 .preview-sub b { color:var(--text); font-weight:500; }
+.preview-sub:empty { margin-top:0; }
+
+/* Numbered step markers on the input sections */
+.label .step { display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%; background:var(--bg3); border:1px solid var(--border2); color:var(--muted2); font-size:9px; font-weight:700; margin-right:8px; vertical-align:-4px; }
+.label.outcome { color:var(--coral2); }
+
+/* Action stack: one loud button, two quiet ones */
+#actions { margin-top:2px; }
+.action-row { display:flex; gap:6px; margin-top:7px; }
+.action-row .btn { flex:1; background:none; border-color:transparent; color:var(--muted); font-size:12px; font-weight:400; padding:9px 6px; }
+.action-row .btn:hover { color:var(--text); background:var(--bg3); }
+.btn.coral.idle { background:var(--bg3); border-color:var(--border); color:var(--muted); box-shadow:none; }
+.btn.coral.idle:hover { background:var(--bg4); filter:none; }
+.action-note { font-size:11px; color:var(--muted); text-align:center; margin-top:9px; line-height:1.5; }
 
 /* ── PENDING DRIVE (armed by opening Maps) ── */
 .pending { display:none; background:var(--bg2); border:1px solid var(--cyan-bd); border-radius:var(--r); padding:16px; margin-bottom:16px; box-shadow:var(--card-shadow); }
@@ -295,16 +310,11 @@ html.theme-anim .preview {
 
 /* Preview number gradient + glow */
 .preview-big { background:var(--grad-text); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; filter:drop-shadow(0 0 18px rgba(167,139,250,0.35)); }
+/* ...but a placeholder dash clipped to a gradient just looks like a stray bar */
+.preview-big.idle { background:none; -webkit-text-fill-color:var(--muted); color:var(--muted); filter:none; }
 
 /* Page title accent glow */
 .page-title span { text-shadow:0 0 28px var(--glow-mid); }
-
-/* Shimmer sweep for maps button */
-@keyframes shimmerSweep {
-  0%   { left:-80%; }
-  55%  { left:135%; }
-  100% { left:135%; }
-}
 
 /* Dir button glows when going back */
 .dir-btn.back { box-shadow:0 2px 12px rgba(78,205,196,0.12); }
@@ -318,15 +328,15 @@ html.theme-anim .preview {
 
   <div class="pending" id="pending"></div>
 
-  <div class="label">Who's coming?</div>
+  <div class="label"><span class="step">1</span>Who's coming?</div>
   <div class="card" style="padding:16px;">
     <div class="chips" id="crew-chips">
       <div style="font-size:13px; color:var(--muted);">Add your crew in Settings first</div>
     </div>
     <button class="btn repeat" id="repeat-btn" onclick="repeatLastTrip()" style="display:none;"></button>
-    <button class="btn maps-btn" id="maps-btn" onclick="openMaps()" style="display:none;"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0"><path d="M1.5 11.5L11.5 1.5M11.5 1.5H4.5M11.5 1.5V8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Start drive — open in Maps</button>
   </div>
 
+  <div class="label"><span class="step">2</span>Route</div>
   <div id="direction-btn" class="dir-btn" onclick="flipDirection()">
     <div class="dir-endpoints">
       <span class="dir-node" id="dir-from">Home</span>
@@ -349,7 +359,7 @@ html.theme-anim .preview {
     </div>
   </div>
 
-  <div class="label" style="margin-top:4px;">Kilometers</div>
+  <div class="label" style="margin-top:4px;"><span class="step">3</span>Distance</div>
   <div class="card" style="padding:16px;">
     <div class="irow">
       <input type="number" id="km-input" placeholder="e.g. 38" min="1" step="0.1" oninput="onKmInput()" />
@@ -358,13 +368,19 @@ html.theme-anim .preview {
     <div class="preset-chips" id="preset-chips"></div>
   </div>
 
+  <div class="label outcome" id="preview-label" style="display:none;">This trip</div>
   <div class="preview" id="preview">
     <div class="preview-big" id="preview-big">—</div>
+    <div class="preview-cap" id="preview-cap">per passenger</div>
+    <div class="preview-stats" id="preview-stats"></div>
     <div class="preview-sub" id="preview-sub"></div>
-    <div class="route-viz" id="route-viz" onclick="openMaps()"></div>
+    <div class="route-viz" id="route-viz" onclick="openMapsOnly()"></div>
   </div>
 
-  <button class="btn coral full" id="save-btn" onclick="logTrip()">Save trip</button>
+  <div id="actions">
+    <button class="btn coral full" id="save-btn" onclick="primaryAction()">Save trip</button>
+    <div class="action-row" id="action-row"></div>
+  </div>
 </div>
 
 <!-- DEBTS -->
@@ -573,7 +589,6 @@ function renderTrip() {
   const el = document.getElementById('crew-chips');
   if (!S.members.length) {
     el.innerHTML = '<div style="font-size:13px; color:var(--muted);">Add your crew in Settings first</div>';
-    document.getElementById('maps-btn').style.display='none';
   } else {
     el.innerHTML = S.members.map((m, idx) => {
       const ov = tripOverrides[m.id] || {};
@@ -587,7 +602,6 @@ function renderTrip() {
         <span class="pip"></span>${m.name}${badge}
       </div>`;
     }).join('');
-    document.getElementById('maps-btn').style.display = checkedIds.size > 0 ? 'flex' : 'none';
   }
   const pc = document.getElementById('preset-chips');
   pc.innerHTML = S.presets.map(p =>
@@ -733,8 +747,13 @@ function updatePreview() {
   const pv = document.getElementById('preview');
   renderKmHint();
   renderPending();
-  if (!km || km<=0) { pv.style.display='none'; return; }
-  const { paying, spared, total, fuel, perPass } = calcSplit(km);
+  renderActions();
+
+  // The outcome panel shows as soon as there's anything to show — a route to
+  // draw or a crew to split between — not only once km is filled in.
+  const show = km > 0 || checkedIds.size > 0 || (activeTripHome() && activeTripClub());
+  document.getElementById('preview-label').style.display = show ? '' : 'none';
+  if (!show) { pv.style.display='none'; return; }
   const wasHidden = pv.style.display !== 'block';
   pv.style.display='block';
   if (wasHidden) {
@@ -742,23 +761,59 @@ function updatePreview() {
     void pv.offsetWidth;
     pv.classList.add('entering');
   }
+
+  const has = km > 0;
+  const { paying, spared, total, fuel, perPass } = calcSplit(has ? km : 0);
+
   const bigEl = document.getElementById('preview-big');
-  const newVal = paying.length ? `€${perPass.toFixed(2)}` : `€${fuel.toFixed(2)}`;
+  const newVal = !has ? '—' : paying.length ? `€${perPass.toFixed(2)}` : `€${fuel.toFixed(2)}`;
+  bigEl.classList.toggle('idle', !has);
   if (bigEl.textContent !== newVal) {
     bigEl.textContent = newVal;
     bigEl.classList.remove('pop');
     void bigEl.offsetWidth;
     bigEl.classList.add('pop');
   }
-  let sub = '';
-  if (!checkedIds.size) {
-    sub = `<b>${km} km</b> — riding solo`;
-  } else {
-    sub = `per passenger &nbsp;·&nbsp; <b>${total} people splitting</b> &nbsp;·&nbsp; €${fuel.toFixed(2)} fuel total`;
-    if (spared.length) sub += `<br><span style="color:var(--amber);">${spared.map(m=>m.name).join(', ')} ride free this trip</span>`;
+  document.getElementById('preview-cap').textContent =
+    !has ? 'add a distance above to see the split'
+    : paying.length ? 'each passenger pays' : 'fuel for this trip — riding solo';
+
+  document.getElementById('preview-stats').innerHTML = [
+    `<span><b>${has ? km : '—'}</b>km</span>`,
+    `<span><b>${total}</b>splitting</span>`,
+    `<span><b>${has ? '€'+fuel.toFixed(2) : '—'}</b>fuel</span>`
+  ].join('');
+
+  document.getElementById('preview-sub').innerHTML = spared.length
+    ? `<span style="color:var(--amber);">${spared.map(m=>m.name).join(', ')} ride free this trip</span>`
+    : '';
+  renderRouteViz(has ? km : null);
+}
+
+/* ── ACTION BUTTONS ──
+   One loud button that does the whole job, plus the two halves of it kept
+   around quietly so the old open-Maps-then-log-later habit still works. */
+function renderActions() {
+  const km = parseFloat(document.getElementById('km-input').value);
+  const canMap = !!(activeTripHome() && activeTripClub());
+  const primary = document.getElementById('save-btn');
+  const row = document.getElementById('action-row');
+
+  let amount = '';
+  if (km > 0) {
+    const { paying, fuel, perPass } = calcSplit(km);
+    amount = paying.length ? ` — €${perPass.toFixed(2)} each` : ` — €${fuel.toFixed(2)}`;
   }
-  document.getElementById('preview-sub').innerHTML = sub;
-  renderRouteViz(km);
+
+  primary.classList.toggle('idle', !(km > 0));
+  primary.innerHTML = canMap
+    ? `${MAPS_ICON}Open Maps &amp; log${amount}`
+    : `Log trip${amount}`;
+
+  row.innerHTML = canMap
+    ? `<button class="btn" onclick="logOnly()">Log only</button>
+       <button class="btn" onclick="openMapsOnly()">Open Maps only</button>`
+    : `<div class="action-note">Add a home and club address in Settings to open routes in Maps</div>`;
 }
 
 /* ── ROUTE VIZ ── */
@@ -834,7 +889,7 @@ function renderRouteViz(km) {
       </defs>
       <path d="${pathD}" fill="none" stroke="${colPickup}" stroke-opacity="0.25" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
       ${dotsHTML}
-      <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="${colMuted}" font-size="10" font-family="Instrument Sans,sans-serif">${km} km total</text>
+      <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="${colMuted}" font-size="10" font-family="Instrument Sans,sans-serif">${km ? km+' km total' : 'distance not set'}</text>
     </svg>
     <div class="route-tap-hint">tap to open in Maps</div>
   `;
@@ -944,9 +999,11 @@ function activeTripClub() {
 }
 
 /* ── MAPS ── */
-function openMaps() {
+const MAPS_ICON = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0;margin-right:8px;vertical-align:-1px"><path d="M1.5 11.5L11.5 1.5M11.5 1.5H4.5M11.5 1.5V8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function buildMapsUrl() {
   const home = activeTripHome(), club = activeTripClub();
-  if (!home || !club) { alert('Add home and club address in Settings first.'); return; }
+  if (!home || !club) return null;
   const isBack = tripDirection === 'back';
   const origin = isBack ? club : home;
   const dest   = isBack ? home : club;
@@ -961,9 +1018,30 @@ function openMaps() {
   if (isBack) waypoints.reverse();
   let url = `https://www.google.com/maps/dir/?api=1&origin=${enc(origin)}&destination=${enc(dest)}&travelmode=driving`;
   if (waypoints.length) url += `&waypoints=${waypoints.map(enc).join('|')}`;
+  return url;
+}
+
+// The loud button: does the whole job in one tap.
+function primaryAction() {
+  const km = parseFloat(document.getElementById('km-input').value);
+  if (!km || km<=0) { focusKmInput(); return; }
+  const url = buildMapsUrl();
+  if (url) window.open(url, '_blank');
+  logTrip(1);
+}
+
+// Quiet button: log without touching Maps.
+function logOnly() { logTrip(1); }
+
+// Quiet button: the original workflow — open the route, log it when you're
+// back. Arms the pending banner so the trip survives the trip to Maps.
+function openMapsOnly() {
+  const url = buildMapsUrl();
+  if (!url) { alert('Add home and club address in Settings first.'); return; }
   armPendingDrive();
   window.open(url, '_blank');
 }
+const openMaps = openMapsOnly;   // legacy name
 
 /* ── PENDING DRIVE ──
    Opening Maps snapshots the trip so it survives the app switch (mobile
@@ -1094,9 +1172,9 @@ function logTrip(legs) {
   renderTrip();
 
   const btn = document.getElementById('save-btn');
-  btn.textContent = legs===2 ? '✓ Both legs saved' : '✓ Saved';
+  btn.textContent = legs===2 ? '✓ Both legs logged' : '✓ Logged';
   btn.classList.add('saved');
-  setTimeout(()=>{ btn.textContent='Save trip'; btn.classList.remove('saved'); }, 1500);
+  setTimeout(()=>{ btn.classList.remove('saved'); renderActions(); }, 1500);
 }
 
 /* ── DEBTS ── */
