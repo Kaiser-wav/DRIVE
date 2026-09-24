@@ -1,0 +1,20 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "fraunces",
+        "createdAt": "2026-09-24T15:32:25.858Z",
+        "reason": "project spec: CLAUDE.md Design system mandates Fraunces (display) + Instrument Sans (body)"
+      },
+      {
+        "rule": "overused-font",
+        "value": "instrument sans",
+        "createdAt": "2026-09-24T15:32:25.946Z",
+        "reason": "project spec: CLAUDE.md Design system mandates Fraunces (display) + Instrument Sans (body)"
+      }
+    ]
+  }
+}

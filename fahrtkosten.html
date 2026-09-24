@@ -163,6 +163,22 @@ input::placeholder { color:var(--muted); }
 .trip-names { font-size:14px; font-weight:500; margin-bottom:3px; }
 .trip-meta { font-size:12px; color:var(--muted); }
 .trip-amt { font-family:'Fraunces',serif; font-size:18px; font-weight:300; color:var(--amber); flex-shrink:0; }
+.trip-amt.paid { color:var(--green); }
+.trip-names.paid { color:var(--green); }
+
+/* Stats card on the log screen */
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px 12px; margin-top:18px; }
+.stat-num { font-family:'Fraunces',serif; font-size:22px; font-weight:300; color:var(--text); line-height:1.1; }
+.stat-num.coral { color:var(--coral2); }
+.stat-num.green { color:var(--green); }
+.stat-num.amber { color:var(--amber); }
+.stat-lbl { font-size:11px; color:var(--muted); letter-spacing:0.05em; text-transform:uppercase; margin-top:4px; }
+.stat-people { margin-top:18px; padding-top:4px; border-top:1px solid var(--border); }
+.stat-person { display:flex; align-items:center; gap:10px; padding:10px 0 0; font-size:13px; }
+.stat-person .avatar { width:28px; height:28px; font-size:11px; }
+.stat-person-name { flex:1; min-width:0; font-weight:500; }
+.stat-person-meta { color:var(--muted); font-size:12px; font-weight:400; }
+.stat-person-amt { font-family:'Fraunces',serif; font-size:15px; color:var(--muted2); }
 
 .member-row { display:flex; align-items:center; gap:10px; padding:11px 0; border-top:1px solid var(--border); }
 .member-row:first-child { border-top:none; }
@@ -400,6 +416,14 @@ html.theme-anim .preview {
 <!-- LOG -->
 <div id="s-log" class="screen">
   <div class="page-title">Trip <span>history</span></div>
+  <div class="card" id="stats-card" style="display:none;">
+    <div class="toggle-pill">
+      <button id="st-month" onclick="setStatsRange('month')">This month</button>
+      <button id="st-all" onclick="setStatsRange('all')">All time</button>
+    </div>
+    <div id="stats-body"></div>
+  </div>
+  <div class="label" id="log-label" style="margin-top:8px;">Trips &amp; payments</div>
   <div class="card" id="log-card"><div id="log-body"></div></div>
   <div class="empty" id="log-empty" style="display:none;">No trips yet</div>
 </div>
@@ -459,12 +483,21 @@ html.theme-anim .preview {
     <div class="igroup"><label>Kilometers</label><input type="number" id="p-km" placeholder="38" min="1" step="0.1" /></div>
     <button class="btn full" onclick="addPreset()">Add preset</button>
   </div>
+  <div class="label">Backup</div>
+  <div class="card">
+    <div style="display:flex; gap:8px;">
+      <button class="btn coral" style="flex:1;" onclick="exportBackup()">Save backup</button>
+      <button class="btn" style="flex:1;" onclick="document.getElementById('import-file').click()">Restore</button>
+    </div>
+    <input type="file" id="import-file" accept="application/json,.json" style="display:none;" onchange="importBackup(this)" />
+    <div style="font-size:12px; color:var(--muted); margin:10px 0 0 2px; line-height:1.5;" id="backup-sub"></div>
+  </div>
   <div class="label">Data</div>
   <div class="card">
     <button class="btn danger full" onclick="zeroDebts()" style="width:100%; text-align:left; padding:12px 14px;">Zero out all debts</button>
     <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;">Set every debt balance to exactly €0.00, bypassing payment history.</div>
-    <button class="btn danger full" onclick="clearTrips()" style="width:100%; text-align:left; padding:12px 14px;">Clear trip history</button>
-    <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;">Remove all logged trips. Does not touch debt balances.</div>
+    <button class="btn danger full" onclick="clearTrips()" style="width:100%; text-align:left; padding:12px 14px;">Clear history</button>
+    <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;">Remove all logged trips and payments. Does not touch debt balances.</div>
     <button class="btn danger full" id="forget-routes-btn" onclick="forgetRoutes()" style="width:100%; text-align:left; padding:12px 14px;">Forget learned distances</button>
     <div style="font-size:12px; color:var(--muted); margin: 6px 0 0 2px;" id="forget-routes-sub">The app remembers the km of every route you log and fills it in automatically next time.</div>
   </div>
@@ -534,6 +567,7 @@ let S = {
   members:[], trips:[], debts:{},
   settings:{ homeAddr:'', clubAddr:'', consumption:7.5, gasPrice:1.79, surcharge:0, homeAddrs:[], clubAddrs:[], theme:'dark' },
   presets:[],
+  payments:[],         // { id, ts, name, amt } — newest first
   routeMemory:{},      // routeSignature -> { km, n, ts }
   pendingDrive:null    // snapshot armed when Maps is opened, waiting to be logged
 };
@@ -548,6 +582,7 @@ let tripClub = null;
 let tripDirection = 'there';
 let kmSource = null;   // null | 'auto' | 'manual' | 'preset'
 let returnPrompt = null;  // session-only nudge to log the way back
+let statsRange = 'month'; // 'month' | 'all' — log screen stats card
 
 const PENDING_MAX_AGE = 12*60*60*1000;  // an armed drive older than this is dropped
 
@@ -556,6 +591,9 @@ function hydrate() {
   const r = localStorage.getItem('carpool_v4');
   if (r) try { const d=JSON.parse(r); S={...S,...d}; S.settings={...S.settings,...(d.settings||{})}; } catch(e){}
   if (!S.routeMemory) S.routeMemory = {};
+  if (!S.payments) S.payments = [];
+  // Trips logged before `ts` existed carry their timestamp in the id.
+  S.trips.forEach(t => { if (!t.ts) t.ts = t.id; });
   applyTheme(S.settings.theme || 'dark', false);
 }
 
@@ -590,7 +628,15 @@ function showScreen(id, btn) {
 }
 
 function sv(k,v) { S.settings[k]=isNaN(parseFloat(v))||v===''?v:parseFloat(v); persist(); }
-function ini(n) { return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function ini(n) { return esc(n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)); }
+// Names and addresses are user text — escape before they go into innerHTML.
+function esc(s) { return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function fmtDate(ts) {
+  const d = new Date(ts), o = { day:'2-digit', month:'short' };
+  if (d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+  return d.toLocaleDateString('en-GB', o);
+}
 
 /* ── TRIP ── */
 function renderTrip() {
@@ -607,13 +653,13 @@ function renderTrip() {
       else if (isOn && ov.cameToMe === 'pays') { cls='came-pays'; badge='<span class="chip-badge">no detour</span>'; }
       else if (isOn && ov.addr) { badge='<span class="chip-badge">↻</span>'; }
       return `<div class="chip ${cls}" style="animation-delay:${idx*28}ms" onclick="${isOn ? `openChipModal(${m.id})` : `quickAddMember(${m.id})`}">
-        <span class="pip"></span>${m.name}${badge}
+        <span class="pip"></span>${esc(m.name)}${badge}
       </div>`;
     }).join('');
   }
   const pc = document.getElementById('preset-chips');
   pc.innerHTML = S.presets.map(p =>
-    `<div class="preset-chip" onclick="usePreset(${p.km})">${p.name} <span style="color:var(--muted);font-size:11px;">${p.km}km</span></div>`
+    `<div class="preset-chip" onclick="usePreset(${p.km})">${esc(p.name)} <span style="color:var(--muted);font-size:11px;">${p.km}km</span></div>`
   ).join('');
   renderRouteSelector();
   updateDirectionBtn();
@@ -623,10 +669,14 @@ function renderTrip() {
   updatePreview();
 }
 
-/* ── REPEAT LAST TRIP ── */
+/* ── REPEAT LAST TRIP ──
+   Repeats the most recent outbound trip (the way back is usually a different
+   crew), falling back to whatever was logged last. */
+function repeatSource() { return S.trips.find(t=>t.dir!=='back') || S.trips[0]; }
+
 function renderRepeatBtn() {
   const btn = document.getElementById('repeat-btn');
-  const last = S.trips[0];
+  const last = repeatSource();
   if (!last || checkedIds.size || !S.members.length) { btn.style.display='none'; return; }
   const names = [...(last.passengers||[]), ...(last.spared||[])];
   if (!names.length) { btn.style.display='none'; return; }
@@ -635,17 +685,31 @@ function renderRepeatBtn() {
 }
 
 function repeatLastTrip() {
-  const last = S.trips[0];
+  const last = repeatSource();
   if (!last) return;
   checkedIds = new Set();
   tripOverrides = {};
-  (last.passengers||[]).forEach(n => {
-    const m = S.members.find(m=>m.name===n); if (m) checkedIds.add(m.id);
-  });
-  (last.spared||[]).forEach(n => {
-    const m = S.members.find(m=>m.name===n);
-    if (m) { checkedIds.add(m.id); tripOverrides[m.id] = { addr:null, cameToMe:'spare' }; }
-  });
+  if (last.setup) {
+    // Full snapshot: crew, pickup overrides, came-to-me modes, route endpoints.
+    const alive = id => S.members.some(m=>m.id===id);
+    (last.setup.crew||[]).filter(alive).forEach(id => checkedIds.add(id));
+    Object.entries(last.setup.overrides||{}).forEach(([id, ov]) => {
+      if (checkedIds.has(+id)) tripOverrides[id] = clone(ov);
+    });
+    tripHome = (S.settings.homeAddrs||[]).some(h=>h.id===last.setup.home) ? last.setup.home : null;
+    tripClub = (S.settings.clubAddrs||[]).some(c=>c.id===last.setup.club) ? last.setup.club : null;
+  } else {
+    // Trips logged before snapshots existed only know names.
+    (last.passengers||[]).forEach(n => {
+      const m = S.members.find(m=>m.name===n); if (m) checkedIds.add(m.id);
+    });
+    (last.spared||[]).forEach(n => {
+      const m = S.members.find(m=>m.name===n);
+      if (m) { checkedIds.add(m.id); tripOverrides[m.id] = { addr:null, cameToMe:'spare' }; }
+    });
+  }
+  tripDirection = last.dir || 'there';
+  returnPrompt = null;
   document.getElementById('km-input').value = last.km;
   kmSource = 'manual';
   renderTrip();
@@ -796,7 +860,7 @@ function updatePreview() {
   ].join('');
 
   document.getElementById('preview-sub').innerHTML = spared.length
-    ? `<span style="color:var(--amber);">${spared.map(m=>m.name).join(', ')} ride free this trip</span>`
+    ? `<span style="color:var(--amber);">${esc(spared.map(m=>m.name).join(', '))} ride free this trip</span>`
     : '';
   renderRouteViz(has ? km : null);
 }
@@ -832,8 +896,8 @@ function renderRouteViz(km) {
   const viz = document.getElementById('route-viz');
   const homeAddr = activeTripHome();
   const clubAddr = activeTripClub();
-  const homeLabel = homeAddr ? shortAddr(homeAddr) : 'Home';
-  const clubLabel = clubAddr ? shortAddr(clubAddr) : 'Club';
+  const homeLabel = homeAddr ? esc(shortAddr(homeAddr)) : 'Home';
+  const clubLabel = clubAddr ? esc(shortAddr(clubAddr)) : 'Club';
 
   const midStops = [];
   [...checkedIds].forEach(id => {
@@ -842,7 +906,7 @@ function renderRouteViz(km) {
     const ov = tripOverrides[id]||{};
     if (ov.cameToMe) return;
     const addr = ov.addr || m.addr;
-    midStops.push({ label: m.name, sublabel: addr ? shortAddr(addr) : null, type: 'pickup' });
+    midStops.push({ label: esc(m.name), sublabel: addr ? esc(shortAddr(addr)) : null, type: 'pickup' });
   });
   const isBack = tripDirection === 'back';
   const stops = isBack
@@ -1106,16 +1170,17 @@ function renderPending() {
   const when = mins < 1 ? 'just now' : mins < 60 ? `${mins} min ago` : `${Math.round(mins/60)} h ago`;
   const homeLabel = activeTripHome() ? shortAddr(activeTripHome()) : 'Home';
   const clubLabel = activeTripClub() ? shortAddr(activeTripClub()) : 'Club';
-  const route = tripDirection === 'back' ? `${clubLabel} → ${homeLabel}` : `${homeLabel} → ${clubLabel}`;
+  const route = esc(tripDirection === 'back' ? `${clubLabel} → ${homeLabel}` : `${homeLabel} → ${clubLabel}`);
   const names = [...checkedIds].map(id=>(S.members.find(m=>m.id===id)||{}).name).filter(Boolean);
-  const who = names.length ? names.join(', ') : 'riding solo';
+  const who = names.length ? esc(names.join(', ')) : 'riding solo';
 
   const km = parseFloat(document.getElementById('km-input').value);
   let actions;
   if (km > 0) {
-    const per = +calcSplit(km).perPass.toFixed(2);
+    const { paying, fuel, perPass } = calcSplit(km);
+    const amount = paying.length ? `€${perPass.toFixed(2)} each` : `€${fuel.toFixed(2)} fuel`;
     actions = `
-      <button class="btn coral full" onclick="logTrip()">Log trip — €${per.toFixed(2)} each</button>
+      <button class="btn coral full" onclick="logTrip()">Log trip — ${amount}</button>
       <div class="pending-row">
         <button class="btn ghost" onclick="discardPendingDrive()">Discard</button>
       </div>`;
@@ -1155,13 +1220,16 @@ function logTrip() {
 
   rememberRoute(km);
 
+  const now = Date.now();
   S.trips.unshift({
-    id: Date.now(),
-    date: new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),
+    id: now, ts: now,
+    date: fmtDate(now),
     km, totalCost:+fuel.toFixed(2), perPerson:perPass,
     passengers:paying.map(p=>p.name),
     spared:spared.map(p=>p.name),
-    dir: tripDirection
+    dir: tripDirection,
+    // everything "Same as last time" needs to rebuild this trip exactly
+    setup: { crew:[...checkedIds], overrides:clone(tripOverrides), home:tripHome, club:tripClub }
   });
   paying.forEach(p => { S.debts[p.name] = +((S.debts[p.name]||0)+perPass).toFixed(2); });
   S.pendingDrive = null;
@@ -1171,7 +1239,7 @@ function logTrip() {
   // fully editable before it's logged.
   returnPrompt = tripDirection === 'there' ? {
     crew: [...checkedIds],
-    overrides: JSON.parse(JSON.stringify(tripOverrides)),
+    overrides: clone(tripOverrides),
     km, home: tripHome, club: tripClub,
     names: paying.concat(spared).map(p=>p.name),
     from: activeTripHome() ? shortAddr(activeTripHome()) : 'Home',
@@ -1197,13 +1265,13 @@ function logTrip() {
 function renderReturnPrompt() {
   const el = document.getElementById('return-prompt');
   if (!returnPrompt) { el.style.display='none'; el.innerHTML=''; return; }
-  const who = returnPrompt.names.length ? returnPrompt.names.join(', ') : 'nobody';
+  const who = returnPrompt.names.length ? esc(returnPrompt.names.join(', ')) : 'nobody';
   el.innerHTML = `
     <div class="rp-text">Logged the way there. Now the way back?
       <div class="rp-sub">Starts from the same crew (${who}) — change who's coming before you log it</div>
     </div>
     <div class="pending-row">
-      <button class="btn" onclick="setupReturn()">Set up ${returnPrompt.to} → ${returnPrompt.from}</button>
+      <button class="btn" onclick="setupReturn()">Set up ${esc(returnPrompt.to)} → ${esc(returnPrompt.from)}</button>
       <button class="btn ghost" onclick="dismissReturn()">Not now</button>
     </div>`;
   el.style.display='block';
@@ -1240,36 +1308,108 @@ function renderDebts() {
     const lbl = amt<0?`−€${Math.abs(amt).toFixed(2)}`:`€${amt.toFixed(2)}`;
     return `<div class="debt-row">
       <div class="avatar">${ini(name)}</div>
-      <div class="debt-name">${name}</div>
-      <div class="debt-amount ${cls}" onclick="openPayModal('${name}')">${lbl}</div>
+      <div class="debt-name">${esc(name)}</div>
+      <div class="debt-amount ${cls}" data-name="${esc(name)}" onclick="openPayModal(this.dataset.name)">${lbl}</div>
     </div>`;
   }).join('');
 }
 
 /* ── LOG ── */
+// Trips and payments in one timeline, newest first.
 function renderLog() {
-  if (!S.trips.length) {
-    document.getElementById('log-card').style.display='none';
-    document.getElementById('log-empty').style.display='block';
-    return;
-  }
-  document.getElementById('log-card').style.display='block';
-  document.getElementById('log-empty').style.display='none';
-  document.getElementById('log-body').innerHTML = S.trips.map(t=>{
-    const names = t.passengers.length ? t.passengers.join(', ') : 'Solo';
-    const sparedTxt = t.spared&&t.spared.length ? ` · <span style="color:var(--amber);">${t.spared.join(', ')} free</span>` : '';
-    const dirTxt = t.dir ? ` &nbsp;·&nbsp; ${t.dir==='back' ? 'return leg' : 'outbound'}` : '';
-    return `<div class="trip-row">
-      <div style="flex:1; min-width:0;">
-        <div class="trip-names">${names}${sparedTxt}</div>
-        <div class="trip-meta">${t.date} &nbsp;·&nbsp; ${t.km} km &nbsp;·&nbsp; €${t.totalCost.toFixed(2)} total${dirTxt}</div>
+  renderStats();
+  const items = [
+    ...S.trips.map(t => ({ ts:t.ts||t.id, html:tripRowHTML(t) })),
+    ...S.payments.map(p => ({ ts:p.ts, html:paymentRowHTML(p) }))
+  ].sort((a,b) => b.ts - a.ts);
+  const empty = !items.length;
+  document.getElementById('log-card').style.display = empty ? 'none' : 'block';
+  document.getElementById('log-label').style.display = empty ? 'none' : '';
+  document.getElementById('log-empty').style.display = empty ? 'block' : 'none';
+  document.getElementById('log-body').innerHTML = items.map(i=>i.html).join('');
+}
+
+function tripRowHTML(t) {
+  const names = t.passengers.length ? esc(t.passengers.join(', ')) : 'Solo';
+  const sparedTxt = t.spared&&t.spared.length ? ` · <span style="color:var(--amber);">${esc(t.spared.join(', '))} free</span>` : '';
+  const dirTxt = t.dir ? ` &nbsp;·&nbsp; ${t.dir==='back' ? 'return leg' : 'outbound'}` : '';
+  return `<div class="trip-row">
+    <div style="flex:1; min-width:0;">
+      <div class="trip-names">${names}${sparedTxt}</div>
+      <div class="trip-meta">${fmtDate(t.ts||t.id)} &nbsp;·&nbsp; ${t.km} km &nbsp;·&nbsp; €${t.totalCost.toFixed(2)} total${dirTxt}</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+      <div class="trip-amt">€${t.perPerson.toFixed(2)}</div>
+      <button class="btn danger" style="padding:6px 10px; font-size:12px;" onclick="deleteTrip(${t.id})">✕</button>
+    </div>
+  </div>`;
+}
+
+function paymentRowHTML(p) {
+  return `<div class="trip-row">
+    <div style="flex:1; min-width:0;">
+      <div class="trip-names paid">${esc(p.name)} paid</div>
+      <div class="trip-meta">${fmtDate(p.ts)} &nbsp;·&nbsp; payment</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+      <div class="trip-amt paid">+€${p.amt.toFixed(2)}</div>
+      <button class="btn danger" style="padding:6px 10px; font-size:12px;" onclick="deletePayment(${p.id})">✕</button>
+    </div>
+  </div>`;
+}
+
+/* ── STATS ── */
+function setStatsRange(r) { statsRange = r; renderStats(); }
+
+function renderStats() {
+  const card = document.getElementById('stats-card');
+  if (!S.trips.length && !S.payments.length) { card.style.display='none'; return; }
+  card.style.display = 'block';
+  document.getElementById('st-month').classList.toggle('active', statsRange==='month');
+  document.getElementById('st-all').classList.toggle('active', statsRange==='all');
+
+  const now = new Date();
+  const inRange = ts => {
+    if (statsRange === 'all') return true;
+    const d = new Date(ts);
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  };
+  const trips = S.trips.filter(t => inRange(t.ts||t.id));
+  const paidBack = S.payments.filter(p => inRange(p.ts)).reduce((s,p) => s+p.amt, 0);
+
+  let km = 0, fuel = 0, charged = 0;
+  const people = {};
+  const person = n => people[n] || (people[n] = { rides:0, free:0, charged:0 });
+  trips.forEach(t => {
+    km += t.km; fuel += t.totalCost;
+    charged += t.perPerson * t.passengers.length;
+    t.passengers.forEach(n => { const p = person(n); p.rides++; p.charged += t.perPerson; });
+    (t.spared||[]).forEach(n => { const p = person(n); p.rides++; p.free++; });
+  });
+  // What the driving actually cost you: fuel minus what the crew was charged.
+  // Negative when the surcharge more than covers your share.
+  const yours = fuel - charged;
+  const eur = v => `${v<0?'−':''}€${Math.abs(v).toFixed(2)}`;
+  const km1 = Math.round(km*10)/10;
+
+  const stat = (num, lbl, cls='') => `<div><div class="stat-num ${cls}">${num}</div><div class="stat-lbl">${lbl}</div></div>`;
+  const rows = Object.entries(people).sort((a,b) => b[1].rides - a[1].rides).map(([n,p]) => `
+    <div class="stat-person">
+      <div class="avatar">${ini(n)}</div>
+      <div class="stat-person-name">${esc(n)} <span class="stat-person-meta">· ${p.rides} ride${p.rides===1?'':'s'}${p.free?`, ${p.free} free`:''}</span></div>
+      <div class="stat-person-amt">€${p.charged.toFixed(2)}</div>
+    </div>`).join('');
+
+  document.getElementById('stats-body').innerHTML = !trips.length && !paidBack
+    ? `<div class="empty" style="padding:20px 0 4px;">Nothing logged this month yet</div>`
+    : `<div class="stats-grid">
+        ${stat(trips.length, `trip${trips.length===1?'':'s'} · ${km1} km`)}
+        ${stat(eur(fuel), 'fuel burned')}
+        ${stat(eur(charged), 'charged to crew', 'coral')}
+        ${stat(eur(paidBack), 'paid back to you', 'green')}
+        ${stat(eur(yours), yours < 0 ? 'you came out ahead' : 'your share', 'amber')}
       </div>
-      <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
-        <div class="trip-amt">€${t.perPerson.toFixed(2)}</div>
-        <button class="btn danger" style="padding:6px 10px; font-size:12px;" onclick="deleteTrip(${t.id})">✕</button>
-      </div>
-    </div>`;
-  }).join('');
+      ${rows ? `<div class="stat-people">${rows}</div>` : ''}`;
 }
 
 /* ── SETTINGS ── */
@@ -1292,24 +1432,26 @@ function renderSettings() {
   document.getElementById('home-addrs-hr').style.display = homeAddrs.length ? '' : 'none';
   document.getElementById('home-addrs-list').innerHTML = homeAddrs.map(h=>
     `<div class="preset-row">
-      <span>${h.label} <span style="color:var(--muted);font-size:12px;">${shortAddr(h.addr)}</span></span>
+      <span>${esc(h.label)} <span style="color:var(--muted);font-size:12px;">${esc(shortAddr(h.addr))}</span></span>
       <button class="btn danger" onclick="removeHomeAddr(${h.id})">Remove</button>
     </div>`).join('');
 
   document.getElementById('club-addrs-hr').style.display = clubAddrs.length ? '' : 'none';
   document.getElementById('club-addrs-list').innerHTML = clubAddrs.map(c=>
     `<div class="preset-row">
-      <span>${c.label} <span style="color:var(--muted);font-size:12px;">${shortAddr(c.addr)}</span></span>
+      <span>${esc(c.label)} <span style="color:var(--muted);font-size:12px;">${esc(shortAddr(c.addr))}</span></span>
       <button class="btn danger" onclick="removeClubAddr(${c.id})">Remove</button>
     </div>`).join('');
 
   document.getElementById('members-list').innerHTML = S.members.length
     ? S.members.map(m=>`<div class="member-row">
         <div class="avatar">${ini(m.name)}</div>
-        <div class="member-info"><div class="member-name-txt">${m.name}</div><div class="member-addr-txt">${m.addr||'No address'}</div></div>
+        <div class="member-info"><div class="member-name-txt">${esc(m.name)}</div><div class="member-addr-txt">${m.addr?esc(m.addr):'No address'}</div></div>
         <button class="btn danger" onclick="removeMember(${m.id})">Remove</button>
       </div>`).join('')
     : '<div style="font-size:13px;color:var(--muted);padding:4px 0;">No crew yet</div>';
+
+  renderBackupSub();
 
   const learned = Object.keys(S.routeMemory||{}).length;
   document.getElementById('forget-routes-btn').textContent = learned
@@ -1321,7 +1463,7 @@ function renderSettings() {
 
   document.getElementById('presets-list').innerHTML = S.presets.length
     ? S.presets.map(p=>`<div class="preset-row">
-        <span>${p.name} <span style="color:var(--muted);font-size:12px;">${p.km} km</span></span>
+        <span>${esc(p.name)} <span style="color:var(--muted);font-size:12px;">${p.km} km</span></span>
         <button class="btn danger" onclick="removePreset(${p.id})">Remove</button>
       </div>`).join('')
     : '<div style="font-size:13px;color:var(--muted);padding:4px 0;">No presets yet</div>';
@@ -1378,6 +1520,8 @@ function applyPayment() {
   const amt=parseFloat(document.getElementById('pay-custom').value);
   if (!amt||amt<=0) { closePayModal(); return; }
   S.debts[payModalName]=+((S.debts[payModalName]||0)-amt).toFixed(2);
+  const now=Date.now();
+  S.payments.unshift({ id:now, ts:now, name:payModalName, amt:+amt.toFixed(2) });
   persist(); closePayModal(); renderDebts();
 }
 function deleteDebt() {
@@ -1403,7 +1547,7 @@ function renderRouteSelector() {
     homeRow.style.display='';
     const all = [{ id:null, label: S.settings.homeAddr ? shortAddr(S.settings.homeAddr) : 'Default' }, ...homeAddrs.map(h=>({id:h.id,label:h.label}))];
     document.getElementById('home-chips').innerHTML = all.map(h=>
-      `<div class="chip ${tripHome===h.id?'on':''}" onclick="selectTripAddr('home',${h.id===null?'null':h.id})"><span class="pip"></span>${h.label}</div>`
+      `<div class="chip ${tripHome===h.id?'on':''}" onclick="selectTripAddr('home',${h.id===null?'null':h.id})"><span class="pip"></span>${esc(h.label)}</div>`
     ).join('');
   } else {
     homeRow.style.display='none';
@@ -1414,7 +1558,7 @@ function renderRouteSelector() {
     clubRow.style.display='';
     const all = [{ id:null, label: S.settings.clubAddr ? shortAddr(S.settings.clubAddr) : 'Default' }, ...clubAddrs.map(c=>({id:c.id,label:c.label}))];
     document.getElementById('club-chips').innerHTML = all.map(c=>
-      `<div class="chip ${tripClub===c.id?'on':''}" onclick="selectTripAddr('club',${c.id===null?'null':c.id})"><span class="pip"></span>${c.label}</div>`
+      `<div class="chip ${tripClub===c.id?'on':''}" onclick="selectTripAddr('club',${c.id===null?'null':c.id})"><span class="pip"></span>${esc(c.label)}</div>`
     ).join('');
   } else {
     clubRow.style.display='none';
@@ -1473,6 +1617,61 @@ function deleteTrip(id) {
   persist(); renderLog(); renderDebts();
 }
 
+/* ── DELETE PAYMENT ── */
+function deletePayment(id) {
+  const p=S.payments.find(p=>p.id===id);
+  if (!p||!confirm(`Delete this payment and add €${p.amt.toFixed(2)} back to ${p.name}'s balance?`)) return;
+  S.debts[p.name]=+(((S.debts[p.name]||0)+p.amt).toFixed(2));
+  S.payments=S.payments.filter(p=>p.id!==id);
+  persist(); renderLog(); renderDebts();
+}
+
+/* ── BACKUP ──
+   Everything lives in this browser's localStorage — one cleared Safari and
+   every debt is gone. A backup is just S as a JSON file. */
+function exportBackup() {
+  S.settings.lastBackup = Date.now();
+  persist();
+  const blob = new Blob([JSON.stringify({ app:'carpool', v:4, exportedAt:Date.now(), data:S }, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `carpool-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  renderSettings();
+}
+
+function importBackup(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let d;
+    try { d = JSON.parse(reader.result); } catch(e) { alert("That file isn't a carpool backup."); return; }
+    if (d && d.data) d = d.data;
+    if (!d || !Array.isArray(d.members) || !Array.isArray(d.trips) || typeof d.debts !== 'object') {
+      alert("That file isn't a carpool backup."); return;
+    }
+    const owed = Object.values(d.debts).filter(v=>v>0).reduce((s,v)=>s+v,0);
+    if (!confirm(`Replace everything in the app with this backup?\n\n${d.members.length} crew · ${d.trips.length} trips · €${owed.toFixed(2)} owed\n\nWhat's here now will be overwritten.`)) return;
+    localStorage.setItem('carpool_v4', JSON.stringify(d));
+    location.reload();
+  };
+  reader.readAsText(file);
+}
+
+function renderBackupSub() {
+  const last = S.settings.lastBackup;
+  const el = document.getElementById('backup-sub');
+  if (!last) { el.innerHTML = '<span style="color:var(--amber);">No backup yet.</span> Your data only lives in this browser — save a file to Files or iCloud now and then.'; return; }
+  const days = Math.floor((Date.now()-last)/86400000);
+  const ago = days===0 ? 'today' : days===1 ? 'yesterday' : `${days} days ago`;
+  el.innerHTML = days > 30
+    ? `<span style="color:var(--amber);">Last backup ${ago}.</span> Time for a fresh one.`
+    : `Last backup ${ago} (${fmtDate(last)}). Restore replaces everything with the file's contents.`;
+}
+
 /* ── DATA RESETS ── */
 function zeroDebts() {
   if (!confirm('Set all debt balances to exactly €0.00?')) return;
@@ -1480,8 +1679,9 @@ function zeroDebts() {
   persist(); renderDebts();
 }
 function clearTrips() {
-  if (!confirm('Delete all trip history? Debt balances will not change.')) return;
+  if (!confirm('Delete all trip and payment history? Debt balances will not change.')) return;
   S.trips=[];
+  S.payments=[];
   persist(); renderLog();
 }
 function forgetRoutes() {
