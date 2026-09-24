@@ -82,15 +82,15 @@ input::placeholder { color:var(--muted); }
 .btn.ghost:hover { color:var(--muted2); background:var(--bg3); }
 .btn.danger { background:none; border-color:transparent; color:#c0574a; font-size:13px; padding:8px 10px; }
 .btn.danger:hover { background:rgba(192,87,74,0.1); }
-.btn.maps-btn { background:var(--cyan-bg); border-color:var(--cyan-bd); color:var(--cyan); font-size:13px; width:100%; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px; position:relative; overflow:hidden; }
-.btn.maps-btn:hover { background:var(--cyan-bg); filter:brightness(1.15); }
-.btn.maps-btn::after { content:''; position:absolute; top:0; bottom:0; left:-80%; width:45%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent); animation:shimmerSweep 2.8s ease-in-out infinite; pointer-events:none; }
+.btn.repeat { width:100%; margin-top:10px; background:none; border-style:dashed; border-color:var(--border2); color:var(--muted2); font-size:13px; }
+.btn.repeat:hover { background:var(--bg3); color:var(--text); }
 .btn.spare { background:var(--amber-bg); border-color:var(--amber-bd); color:var(--amber); }
 .btn.spare:hover { background:var(--amber-bg); filter:brightness(1.15); }
 .btn.still-pay { background:var(--coral-bg); border-color:var(--coral-bd); color:var(--coral2); }
 .btn.still-pay:hover { background:var(--coral-bg); filter:brightness(1.15); }
 
 .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.chips:last-child { margin-bottom:0; }
 .chip { display:flex; align-items:center; gap:7px; padding:9px 16px; border-radius:100px; border:1px solid var(--border); background:var(--bg3); cursor:pointer; font-size:14px; font-weight:500; transition:border-color 0.2s,background-color 0.2s,color 0.2s,transform 0.24s cubic-bezier(0.22,1,0.36,1),box-shadow 0.24s; user-select:none; color:var(--muted2); position:relative; animation:chipIn 0.3s cubic-bezier(0.22,1,0.36,1) both; }
 .chip:active { transform:scale(0.94); }
 .chip .pip { width:6px; height:6px; border-radius:50%; background:var(--bg4); transition:background 0.15s; flex-shrink:0; }
@@ -102,10 +102,46 @@ input::placeholder { color:var(--muted); }
 .chip.came-pays .pip { background:var(--cyan); }
 .chip-badge { font-size:9px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; opacity:0.75; margin-left:2px; }
 
-.preview { background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:16px 18px; margin:12px 0; display:none; }
-.preview-big { font-family:'Fraunces',serif; font-size:38px; font-weight:300; color:var(--coral); line-height:1; margin-bottom:6px; }
-.preview-sub { font-size:13px; color:var(--muted2); line-height:1.6; }
+.preview { background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:16px 18px; margin:0 0 14px; display:none; }
+.preview-big { font-family:'Fraunces',serif; font-size:38px; font-weight:300; color:var(--coral); line-height:1; margin-bottom:5px; }
+.preview-cap { font-size:12px; color:var(--muted); letter-spacing:0.05em; }
+.preview-stats { display:flex; flex-wrap:wrap; gap:4px 18px; margin-top:14px; padding-top:13px; border-top:1px solid var(--border); font-size:12px; color:var(--muted); letter-spacing:0.02em; }
+.preview-stats b { font-family:'Fraunces',serif; font-size:16px; font-weight:400; color:var(--text); margin-right:4px; }
+.preview-sub { font-size:13px; color:var(--muted2); line-height:1.6; margin-top:10px; }
 .preview-sub b { color:var(--text); font-weight:500; }
+.preview-sub:empty { margin-top:0; }
+
+/* Numbered step markers on the input sections */
+.label .step { display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%; background:var(--bg3); border:1px solid var(--border2); color:var(--muted2); font-size:9px; font-weight:700; margin-right:8px; vertical-align:-4px; }
+.label.outcome { color:var(--coral2); }
+
+/* Action stack: one loud button, two quiet ones */
+#actions { margin-top:2px; }
+.action-row { display:flex; gap:6px; margin-top:7px; }
+.action-row .btn { flex:1; background:none; border-color:transparent; color:var(--muted); font-size:12px; font-weight:400; padding:9px 6px; }
+.action-row .btn:hover { color:var(--text); background:var(--bg3); }
+.btn.coral.idle { background:var(--bg3); border-color:var(--border); color:var(--muted); box-shadow:none; }
+.btn.coral.idle:hover { background:var(--bg4); filter:none; }
+.action-note { font-size:11px; color:var(--muted); text-align:center; margin-top:9px; line-height:1.5; }
+
+/* Offer to set up the way back — a separate one-way trip, never assumed */
+.return-prompt { display:none; margin-top:16px; background:var(--bg2); border:1px solid var(--violet-bd); border-radius:var(--r); padding:15px 16px; animation:previewReveal 0.3s cubic-bezier(0.2,0,0,1); }
+.rp-text { font-size:14px; font-weight:500; color:var(--violet); line-height:1.4; margin-bottom:12px; }
+.rp-sub { font-size:12px; font-weight:400; color:var(--muted); margin-top:5px; line-height:1.5; }
+
+/* ── PENDING DRIVE (armed by opening Maps) ── */
+.pending { display:none; background:var(--bg2); border:1px solid var(--cyan-bd); border-radius:var(--r); padding:16px; margin-bottom:16px; box-shadow:var(--card-shadow); }
+.pending.entering { animation:previewReveal 0.3s cubic-bezier(0.2,0,0,1); }
+.pending-head { display:flex; align-items:flex-start; gap:10px; margin-bottom:14px; }
+.pending-dot { width:8px; height:8px; border-radius:50%; background:var(--cyan); flex-shrink:0; margin-top:6px; animation:pulseDot 1.9s ease-in-out infinite; }
+@keyframes pulseDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.45; transform:scale(0.8); } }
+.pending-title { font-family:'Fraunces',serif; font-size:19px; font-weight:300; font-style:italic; color:var(--cyan); line-height:1.2; }
+.pending-sub { font-size:12px; color:var(--muted2); margin-top:4px; line-height:1.55; }
+.pending-row { display:flex; gap:8px; margin-top:8px; }
+.pending-row .btn { flex:1; font-size:13px; padding:10px 8px; }
+
+.km-hint { display:none; font-size:12px; color:var(--cyan); margin-top:9px; line-height:1.4; }
+.km-hint.dim { color:var(--muted); }
 
 .route-viz { margin:14px 0 4px; cursor:pointer; }
 .route-viz svg { width:100%; overflow:visible; }
@@ -279,16 +315,11 @@ html.theme-anim .preview {
 
 /* Preview number gradient + glow */
 .preview-big { background:var(--grad-text); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; filter:drop-shadow(0 0 18px rgba(167,139,250,0.35)); }
+/* ...but a placeholder dash clipped to a gradient just looks like a stray bar */
+.preview-big.idle { background:none; -webkit-text-fill-color:var(--muted); color:var(--muted); filter:none; }
 
 /* Page title accent glow */
 .page-title span { text-shadow:0 0 28px var(--glow-mid); }
-
-/* Shimmer sweep for maps button */
-@keyframes shimmerSweep {
-  0%   { left:-80%; }
-  55%  { left:135%; }
-  100% { left:135%; }
-}
 
 /* Dir button glows when going back */
 .dir-btn.back { box-shadow:0 2px 12px rgba(78,205,196,0.12); }
@@ -300,14 +331,17 @@ html.theme-anim .preview {
 <div id="s-trip" class="screen active">
   <div class="page-title">New <span>trip</span></div>
 
-  <div class="label">Who's coming?</div>
+  <div class="pending" id="pending"></div>
+
+  <div class="label"><span class="step">1</span>Who's coming?</div>
   <div class="card" style="padding:16px;">
     <div class="chips" id="crew-chips">
       <div style="font-size:13px; color:var(--muted);">Add your crew in Settings first</div>
     </div>
-    <button class="btn maps-btn" id="maps-btn" onclick="openMaps()" style="display:none;"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0"><path d="M1.5 11.5L11.5 1.5M11.5 1.5H4.5M11.5 1.5V8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Open route in Google Maps</button>
+    <button class="btn repeat" id="repeat-btn" onclick="repeatLastTrip()" style="display:none;"></button>
   </div>
 
+  <div class="label"><span class="step">2</span>Route</div>
   <div id="direction-btn" class="dir-btn" onclick="flipDirection()">
     <div class="dir-endpoints">
       <span class="dir-node" id="dir-from">Home</span>
@@ -330,21 +364,30 @@ html.theme-anim .preview {
     </div>
   </div>
 
-  <div class="label" style="margin-top:4px;">Kilometers</div>
+  <div class="label" style="margin-top:4px;"><span class="step">3</span>Distance</div>
   <div class="card" style="padding:16px;">
     <div class="irow">
-      <input type="number" id="km-input" placeholder="e.g. 38" min="1" step="0.1" oninput="updatePreview()" />
+      <input type="number" id="km-input" placeholder="e.g. 38" min="1" step="0.1" oninput="onKmInput()" />
     </div>
+    <div class="km-hint" id="km-hint"></div>
     <div class="preset-chips" id="preset-chips"></div>
   </div>
 
+  <div class="label outcome" id="preview-label" style="display:none;">This trip</div>
   <div class="preview" id="preview">
     <div class="preview-big" id="preview-big">—</div>
+    <div class="preview-cap" id="preview-cap">per passenger</div>
+    <div class="preview-stats" id="preview-stats"></div>
     <div class="preview-sub" id="preview-sub"></div>
-    <div class="route-viz" id="route-viz" onclick="openMaps()"></div>
+    <div class="route-viz" id="route-viz" onclick="openMapsOnly()"></div>
   </div>
 
-  <button class="btn coral full" id="save-btn" onclick="logTrip()">Save trip</button>
+  <div id="actions">
+    <button class="btn coral full" id="save-btn" onclick="primaryAction()">Save trip</button>
+    <div class="action-row" id="action-row"></div>
+  </div>
+
+  <div class="return-prompt" id="return-prompt"></div>
 </div>
 
 <!-- DEBTS -->
@@ -421,7 +464,9 @@ html.theme-anim .preview {
     <button class="btn danger full" onclick="zeroDebts()" style="width:100%; text-align:left; padding:12px 14px;">Zero out all debts</button>
     <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;">Set every debt balance to exactly €0.00, bypassing payment history.</div>
     <button class="btn danger full" onclick="clearTrips()" style="width:100%; text-align:left; padding:12px 14px;">Clear trip history</button>
-    <div style="font-size:12px; color:var(--muted); margin: 6px 0 0 2px;">Remove all logged trips. Does not touch debt balances.</div>
+    <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;">Remove all logged trips. Does not touch debt balances.</div>
+    <button class="btn danger full" id="forget-routes-btn" onclick="forgetRoutes()" style="width:100%; text-align:left; padding:12px 14px;">Forget learned distances</button>
+    <div style="font-size:12px; color:var(--muted); margin: 6px 0 0 2px;" id="forget-routes-sub">The app remembers the km of every route you log and fills it in automatically next time.</div>
   </div>
 </div>
 
@@ -488,7 +533,9 @@ html.theme-anim .preview {
 let S = {
   members:[], trips:[], debts:{},
   settings:{ homeAddr:'', clubAddr:'', consumption:7.5, gasPrice:1.79, surcharge:0, homeAddrs:[], clubAddrs:[], theme:'dark' },
-  presets:[]
+  presets:[],
+  routeMemory:{},      // routeSignature -> { km, n, ts }
+  pendingDrive:null    // snapshot armed when Maps is opened, waiting to be logged
 };
 
 let tripOverrides = {};
@@ -499,11 +546,16 @@ let payModalName = null;
 let tripHome = null;
 let tripClub = null;
 let tripDirection = 'there';
+let kmSource = null;   // null | 'auto' | 'manual' | 'preset'
+let returnPrompt = null;  // session-only nudge to log the way back
+
+const PENDING_MAX_AGE = 12*60*60*1000;  // an armed drive older than this is dropped
 
 function persist() { localStorage.setItem('carpool_v4', JSON.stringify(S)); }
 function hydrate() {
   const r = localStorage.getItem('carpool_v4');
   if (r) try { const d=JSON.parse(r); S={...S,...d}; S.settings={...S.settings,...(d.settings||{})}; } catch(e){}
+  if (!S.routeMemory) S.routeMemory = {};
   applyTheme(S.settings.theme || 'dark', false);
 }
 
@@ -545,7 +597,6 @@ function renderTrip() {
   const el = document.getElementById('crew-chips');
   if (!S.members.length) {
     el.innerHTML = '<div style="font-size:13px; color:var(--muted);">Add your crew in Settings first</div>';
-    document.getElementById('maps-btn').style.display='none';
   } else {
     el.innerHTML = S.members.map((m, idx) => {
       const ov = tripOverrides[m.id] || {};
@@ -559,7 +610,6 @@ function renderTrip() {
         <span class="pip"></span>${m.name}${badge}
       </div>`;
     }).join('');
-    document.getElementById('maps-btn').style.display = checkedIds.size > 0 ? 'flex' : 'none';
   }
   const pc = document.getElementById('preset-chips');
   pc.innerHTML = S.presets.map(p =>
@@ -567,11 +617,44 @@ function renderTrip() {
   ).join('');
   renderRouteSelector();
   updateDirectionBtn();
+  renderRepeatBtn();
+  renderReturnPrompt();
+  applyAutoKm();
   updatePreview();
+}
+
+/* ── REPEAT LAST TRIP ── */
+function renderRepeatBtn() {
+  const btn = document.getElementById('repeat-btn');
+  const last = S.trips[0];
+  if (!last || checkedIds.size || !S.members.length) { btn.style.display='none'; return; }
+  const names = [...(last.passengers||[]), ...(last.spared||[])];
+  if (!names.length) { btn.style.display='none'; return; }
+  btn.style.display = 'block';
+  btn.textContent = `↻ Same as last time — ${names.join(', ')} · ${last.km} km`;
+}
+
+function repeatLastTrip() {
+  const last = S.trips[0];
+  if (!last) return;
+  checkedIds = new Set();
+  tripOverrides = {};
+  (last.passengers||[]).forEach(n => {
+    const m = S.members.find(m=>m.name===n); if (m) checkedIds.add(m.id);
+  });
+  (last.spared||[]).forEach(n => {
+    const m = S.members.find(m=>m.name===n);
+    if (m) { checkedIds.add(m.id); tripOverrides[m.id] = { addr:null, cameToMe:'spare' }; }
+  });
+  document.getElementById('km-input').value = last.km;
+  kmSource = 'manual';
+  renderTrip();
 }
 
 function flipDirection() {
   tripDirection = tripDirection === 'there' ? 'back' : 'there';
+  returnPrompt = null;   // they're steering the direction themselves now
+  renderReturnPrompt();
   const icon = document.getElementById('dir-flip-icon');
   icon.classList.remove('flip-spinning');
   void icon.offsetWidth;
@@ -600,27 +683,88 @@ function updateDirectionBtn() {
 
 function usePreset(km) {
   document.getElementById('km-input').value = km;
+  kmSource = 'preset';
   updatePreview();
 }
 
-function updatePreview() {
-  const km = parseFloat(document.getElementById('km-input').value);
-  const pv = document.getElementById('preview');
-  if (!km || km<=0) { pv.style.display='none'; return; }
-  const paying = [...checkedIds].map(id=>S.members.find(m=>m.id===id)).filter(m=>{
-    if (!m) return false;
-    return (tripOverrides[m.id]||{}).cameToMe !== 'spare';
-  });
-  const spared = [...checkedIds].map(id=>S.members.find(m=>m.id===id)).filter(m=>{
-    if (!m) return false;
-    return (tripOverrides[m.id]||{}).cameToMe === 'spare';
-  });
+function onKmInput() {
+  kmSource = document.getElementById('km-input').value ? 'manual' : null;
+  updatePreview();
+}
+
+/* ── SPLIT MATH — single source of truth for preview + logging ── */
+function calcSplit(km) {
+  const all = [...checkedIds].map(id=>S.members.find(m=>m.id===id)).filter(Boolean);
+  const paying = all.filter(m=>(tripOverrides[m.id]||{}).cameToMe !== 'spare');
+  const spared = all.filter(m=>(tripOverrides[m.id]||{}).cameToMe === 'spare');
   const total = paying.length + 1;
   const fuel = (km/100)*(S.settings.consumption||7.5)*(S.settings.gasPrice||1.79);
   const surch = (S.settings.surcharge||0)*km;
   const perFuel = fuel/total;
   const perSurch = paying.length ? surch/paying.length : 0;
-  const perPass = perFuel+perSurch;
+  return { all, paying, spared, total, fuel, surch, perPass: perFuel+perSurch };
+}
+
+/* ── ROUTE MEMORY — learn the km of each route so it fills itself in ── */
+function routeSignature() {
+  // Direction is left out on purpose: there and back cover the same ground,
+  // so a distance learned one way auto-fills the other.
+  const stops = [...checkedIds].map(id => {
+    const m = S.members.find(m=>m.id===id);
+    if (!m) return null;
+    const ov = tripOverrides[id]||{};
+    if (ov.cameToMe) return null;   // no detour → doesn't change the distance
+    return (ov.addr || m.addr || m.name).toLowerCase().trim();
+  }).filter(Boolean).sort();
+  const norm = s => (s||'').toLowerCase().trim();
+  return [norm(activeTripHome()), stops.join('>'), norm(activeTripClub())].join('|');
+}
+
+function rememberRoute(km) {
+  const sig = routeSignature();
+  const prev = S.routeMemory[sig] || {};
+  S.routeMemory[sig] = { km, n: (prev.n||0)+1, ts: Date.now() };
+}
+
+// Fills the km field from memory unless the user picked a number themselves.
+function applyAutoKm() {
+  const input = document.getElementById('km-input');
+  if (kmSource === 'manual' || kmSource === 'preset') return;
+  if (!checkedIds.size) { if (kmSource==='auto') { input.value=''; kmSource=null; } return; }
+  const mem = S.routeMemory[routeSignature()];
+  if (mem) { input.value = mem.km; kmSource = 'auto'; }
+  else if (kmSource === 'auto') { input.value = ''; kmSource = null; }
+}
+
+function renderKmHint() {
+  const el = document.getElementById('km-hint');
+  const mem = checkedIds.size ? S.routeMemory[routeSignature()] : null;
+  const km = parseFloat(document.getElementById('km-input').value);
+  if (mem && kmSource === 'auto') {
+    el.className = 'km-hint';
+    el.style.display = 'block';
+    el.textContent = `↻ Auto-filled from ${mem.n} previous trip${mem.n===1?'':'s'} on this route — type over it to correct`;
+  } else if (mem && km > 0 && Math.abs(mem.km - km) > 0.01) {
+    el.className = 'km-hint dim';
+    el.style.display = 'block';
+    el.textContent = `Last time this route was ${mem.km} km`;
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function updatePreview() {
+  const km = parseFloat(document.getElementById('km-input').value);
+  const pv = document.getElementById('preview');
+  renderKmHint();
+  renderPending();
+  renderActions();
+
+  // The outcome panel shows as soon as there's anything to show — a route to
+  // draw or a crew to split between — not only once km is filled in.
+  const show = km > 0 || checkedIds.size > 0 || (activeTripHome() && activeTripClub());
+  document.getElementById('preview-label').style.display = show ? '' : 'none';
+  if (!show) { pv.style.display='none'; return; }
   const wasHidden = pv.style.display !== 'block';
   pv.style.display='block';
   if (wasHidden) {
@@ -628,23 +772,59 @@ function updatePreview() {
     void pv.offsetWidth;
     pv.classList.add('entering');
   }
+
+  const has = km > 0;
+  const { paying, spared, total, fuel, perPass } = calcSplit(has ? km : 0);
+
   const bigEl = document.getElementById('preview-big');
-  const newVal = paying.length ? `€${perPass.toFixed(2)}` : `€${fuel.toFixed(2)}`;
+  const newVal = !has ? '—' : paying.length ? `€${perPass.toFixed(2)}` : `€${fuel.toFixed(2)}`;
+  bigEl.classList.toggle('idle', !has);
   if (bigEl.textContent !== newVal) {
     bigEl.textContent = newVal;
     bigEl.classList.remove('pop');
     void bigEl.offsetWidth;
     bigEl.classList.add('pop');
   }
-  let sub = '';
-  if (!checkedIds.size) {
-    sub = `<b>${km} km</b> — riding solo`;
-  } else {
-    sub = `per passenger &nbsp;·&nbsp; <b>${total} people splitting</b> &nbsp;·&nbsp; €${fuel.toFixed(2)} fuel total`;
-    if (spared.length) sub += `<br><span style="color:var(--amber);">${spared.map(m=>m.name).join(', ')} ride free this trip</span>`;
+  document.getElementById('preview-cap').textContent =
+    !has ? 'add a distance above to see the split'
+    : paying.length ? 'each passenger pays' : 'fuel for this trip — riding solo';
+
+  document.getElementById('preview-stats').innerHTML = [
+    `<span><b>${has ? km : '—'}</b>km</span>`,
+    `<span><b>${total}</b>splitting</span>`,
+    `<span><b>${has ? '€'+fuel.toFixed(2) : '—'}</b>fuel</span>`
+  ].join('');
+
+  document.getElementById('preview-sub').innerHTML = spared.length
+    ? `<span style="color:var(--amber);">${spared.map(m=>m.name).join(', ')} ride free this trip</span>`
+    : '';
+  renderRouteViz(has ? km : null);
+}
+
+/* ── ACTION BUTTONS ──
+   One loud button that does the whole job, plus the two halves of it kept
+   around quietly so the old open-Maps-then-log-later habit still works. */
+function renderActions() {
+  const km = parseFloat(document.getElementById('km-input').value);
+  const canMap = !!(activeTripHome() && activeTripClub());
+  const primary = document.getElementById('save-btn');
+  const row = document.getElementById('action-row');
+
+  let amount = '';
+  if (km > 0) {
+    const { paying, fuel, perPass } = calcSplit(km);
+    amount = paying.length ? ` — €${perPass.toFixed(2)} each` : ` — €${fuel.toFixed(2)}`;
   }
-  document.getElementById('preview-sub').innerHTML = sub;
-  renderRouteViz(km);
+
+  primary.classList.toggle('idle', !(km > 0));
+  primary.innerHTML = canMap
+    ? `${MAPS_ICON}Open Maps &amp; log${amount}`
+    : `Log trip${amount}`;
+
+  row.innerHTML = canMap
+    ? `<button class="btn" onclick="logOnly()">Log only</button>
+       <button class="btn" onclick="openMapsOnly()">Open Maps only</button>`
+    : `<div class="action-note">Add a home and club address in Settings to open routes in Maps</div>`;
 }
 
 /* ── ROUTE VIZ ── */
@@ -720,7 +900,7 @@ function renderRouteViz(km) {
       </defs>
       <path d="${pathD}" fill="none" stroke="${colPickup}" stroke-opacity="0.25" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
       ${dotsHTML}
-      <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="${colMuted}" font-size="10" font-family="Instrument Sans,sans-serif">${km} km total</text>
+      <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="${colMuted}" font-size="10" font-family="Instrument Sans,sans-serif">${km ? km+' km total' : 'distance not set'}</text>
     </svg>
     <div class="route-tap-hint">tap to open in Maps</div>
   `;
@@ -830,9 +1010,11 @@ function activeTripClub() {
 }
 
 /* ── MAPS ── */
-function openMaps() {
+const MAPS_ICON = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0;margin-right:8px;vertical-align:-1px"><path d="M1.5 11.5L11.5 1.5M11.5 1.5H4.5M11.5 1.5V8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function buildMapsUrl() {
   const home = activeTripHome(), club = activeTripClub();
-  if (!home || !club) { alert('Add home and club address in Settings first.'); return; }
+  if (!home || !club) return null;
   const isBack = tripDirection === 'back';
   const origin = isBack ? club : home;
   const dest   = isBack ? home : club;
@@ -847,46 +1029,200 @@ function openMaps() {
   if (isBack) waypoints.reverse();
   let url = `https://www.google.com/maps/dir/?api=1&origin=${enc(origin)}&destination=${enc(dest)}&travelmode=driving`;
   if (waypoints.length) url += `&waypoints=${waypoints.map(enc).join('|')}`;
-  window.open(url, '_blank');
+  return url;
 }
 
+// The loud button: does the whole job in one tap.
+function primaryAction() {
+  const km = parseFloat(document.getElementById('km-input').value);
+  if (!km || km<=0) { focusKmInput(); return; }
+  const url = buildMapsUrl();
+  if (url) window.open(url, '_blank');
+  logTrip();
+}
+
+// Quiet button: log without touching Maps.
+function logOnly() { logTrip(); }
+
+// Quiet button: the original workflow — open the route, log it when you're
+// back. Arms the pending banner so the trip survives the trip to Maps.
+function openMapsOnly() {
+  const url = buildMapsUrl();
+  if (!url) { alert('Add home and club address in Settings first.'); return; }
+  armPendingDrive();
+  window.open(url, '_blank');
+}
+const openMaps = openMapsOnly;   // legacy name
+
+/* ── PENDING DRIVE ──
+   Opening Maps snapshots the trip so it survives the app switch (mobile
+   browsers often kill the tab) and greets you with a one-tap log on return. */
+function armPendingDrive() {
+  const km = parseFloat(document.getElementById('km-input').value);
+  S.pendingDrive = {
+    startedAt: Date.now(),
+    km: km > 0 ? km : null,
+    kmSource,
+    direction: tripDirection,
+    home: tripHome,
+    club: tripClub,
+    crew: [...checkedIds],
+    overrides: JSON.parse(JSON.stringify(tripOverrides))
+  };
+  persist();
+  renderPending();
+}
+
+function restorePendingDrive() {
+  const p = S.pendingDrive;
+  if (!p) return;
+  if (Date.now() - p.startedAt > PENDING_MAX_AGE) { S.pendingDrive = null; persist(); return; }
+  checkedIds = new Set((p.crew||[]).filter(id => S.members.some(m=>m.id===id)));
+  tripOverrides = p.overrides || {};
+  tripHome = p.home != null ? p.home : null;
+  tripClub = p.club != null ? p.club : null;
+  tripDirection = p.direction || 'there';
+  if (p.km) { document.getElementById('km-input').value = p.km; kmSource = p.kmSource || 'manual'; }
+}
+
+function discardPendingDrive() {
+  S.pendingDrive = null;
+  persist();
+  renderPending();
+}
+
+function focusKmInput() {
+  const el = document.getElementById('km-input');
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+  el.focus();
+}
+
+function renderPending() {
+  const el = document.getElementById('pending');
+  const p = S.pendingDrive;
+  if (!p || Date.now() - p.startedAt > PENDING_MAX_AGE) { el.style.display='none'; el.innerHTML=''; return; }
+
+  const mins = Math.max(0, Math.round((Date.now()-p.startedAt)/60000));
+  const when = mins < 1 ? 'just now' : mins < 60 ? `${mins} min ago` : `${Math.round(mins/60)} h ago`;
+  const homeLabel = activeTripHome() ? shortAddr(activeTripHome()) : 'Home';
+  const clubLabel = activeTripClub() ? shortAddr(activeTripClub()) : 'Club';
+  const route = tripDirection === 'back' ? `${clubLabel} → ${homeLabel}` : `${homeLabel} → ${clubLabel}`;
+  const names = [...checkedIds].map(id=>(S.members.find(m=>m.id===id)||{}).name).filter(Boolean);
+  const who = names.length ? names.join(', ') : 'riding solo';
+
+  const km = parseFloat(document.getElementById('km-input').value);
+  let actions;
+  if (km > 0) {
+    const per = +calcSplit(km).perPass.toFixed(2);
+    actions = `
+      <button class="btn coral full" onclick="logTrip()">Log trip — €${per.toFixed(2)} each</button>
+      <div class="pending-row">
+        <button class="btn ghost" onclick="discardPendingDrive()">Discard</button>
+      </div>`;
+  } else {
+    actions = `
+      <button class="btn coral full" onclick="focusKmInput()">Add kilometers to log this</button>
+      <div class="pending-row">
+        <button class="btn ghost" onclick="discardPendingDrive()">Discard</button>
+      </div>`;
+  }
+
+  const wasHidden = el.style.display !== 'block';
+  el.innerHTML = `
+    <div class="pending-head">
+      <span class="pending-dot"></span>
+      <div style="min-width:0;">
+        <div class="pending-title">Drive in progress</div>
+        <div class="pending-sub">${route} &nbsp;·&nbsp; ${who}<br>Maps opened ${when}</div>
+      </div>
+    </div>
+    ${actions}`;
+  el.style.display = 'block';
+  if (wasHidden) { el.classList.remove('entering'); void el.offsetWidth; el.classList.add('entering'); }
+}
+
+// Coming back from Maps: refresh the "x min ago" line and the banner state.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) renderPending(); });
+
 /* ── LOG TRIP ── */
+// One call = one one-way trip. The way back is always logged separately,
+// because the crew coming home is often not the crew that came out.
 function logTrip() {
   const km = parseFloat(document.getElementById('km-input').value);
-  if (!km||km<=0) { alert('Enter kilometers first'); return; }
-  const all = [...checkedIds].map(id=>S.members.find(m=>m.id===id)).filter(Boolean);
-  const paying = all.filter(m=>(tripOverrides[m.id]||{}).cameToMe !== 'spare');
-  const spared = all.filter(m=>(tripOverrides[m.id]||{}).cameToMe === 'spare');
-  const total = paying.length + 1;
-  const fuel = (km/100)*(S.settings.consumption||7.5)*(S.settings.gasPrice||1.79);
-  const surch = (S.settings.surcharge||0)*km;
-  const perFuel = fuel/total;
-  const perSurch = paying.length ? surch/paying.length : 0;
-  const perPass = +(perFuel+perSurch).toFixed(2);
+  if (!km||km<=0) { alert('Enter kilometers first'); focusKmInput(); return; }
+  const { paying, spared, fuel, perPass: rawPer } = calcSplit(km);
+  const perPass = +rawPer.toFixed(2);
+
+  rememberRoute(km);
 
   S.trips.unshift({
-    id:Date.now(),
-    date:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),
+    id: Date.now(),
+    date: new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),
     km, totalCost:+fuel.toFixed(2), perPerson:perPass,
     passengers:paying.map(p=>p.name),
-    spared:spared.map(p=>p.name)
+    spared:spared.map(p=>p.name),
+    dir: tripDirection
   });
   paying.forEach(p => { S.debts[p.name] = +((S.debts[p.name]||0)+perPass).toFixed(2); });
+  S.pendingDrive = null;
   persist();
+
+  // Offer the way back as a starting point — same crew, flipped route, still
+  // fully editable before it's logged.
+  returnPrompt = tripDirection === 'there' ? {
+    crew: [...checkedIds],
+    overrides: JSON.parse(JSON.stringify(tripOverrides)),
+    km, home: tripHome, club: tripClub,
+    names: paying.concat(spared).map(p=>p.name),
+    from: activeTripHome() ? shortAddr(activeTripHome()) : 'Home',
+    to:   activeTripClub() ? shortAddr(activeTripClub()) : 'Club'
+  } : null;
 
   checkedIds.clear();
   tripOverrides = {};
   tripHome = null;
   tripClub = null;
+  kmSource = null;
   document.getElementById('km-input').value='';
   document.getElementById('preview').style.display='none';
   renderTrip();
 
   const btn = document.getElementById('save-btn');
-  btn.textContent='✓ Saved';
+  btn.textContent = '✓ Logged';
   btn.classList.add('saved');
-  setTimeout(()=>{ btn.textContent='Save trip'; btn.classList.remove('saved'); }, 1500);
+  setTimeout(()=>{ btn.classList.remove('saved'); renderActions(); }, 1500);
 }
+
+/* ── RETURN LEG ── */
+function renderReturnPrompt() {
+  const el = document.getElementById('return-prompt');
+  if (!returnPrompt) { el.style.display='none'; el.innerHTML=''; return; }
+  const who = returnPrompt.names.length ? returnPrompt.names.join(', ') : 'nobody';
+  el.innerHTML = `
+    <div class="rp-text">Logged the way there. Now the way back?
+      <div class="rp-sub">Starts from the same crew (${who}) — change who's coming before you log it</div>
+    </div>
+    <div class="pending-row">
+      <button class="btn" onclick="setupReturn()">Set up ${returnPrompt.to} → ${returnPrompt.from}</button>
+      <button class="btn ghost" onclick="dismissReturn()">Not now</button>
+    </div>`;
+  el.style.display='block';
+}
+
+function setupReturn() {
+  const r = returnPrompt;
+  returnPrompt = null;
+  tripDirection = 'back';
+  tripHome = r.home;
+  tripClub = r.club;
+  checkedIds = new Set(r.crew.filter(id => S.members.some(m=>m.id===id)));
+  tripOverrides = r.overrides;
+  document.getElementById('km-input').value = r.km;
+  kmSource = 'manual';
+  renderTrip();
+}
+
+function dismissReturn() { returnPrompt = null; renderReturnPrompt(); }
 
 /* ── DEBTS ── */
 function renderDebts() {
@@ -922,10 +1258,11 @@ function renderLog() {
   document.getElementById('log-body').innerHTML = S.trips.map(t=>{
     const names = t.passengers.length ? t.passengers.join(', ') : 'Solo';
     const sparedTxt = t.spared&&t.spared.length ? ` · <span style="color:var(--amber);">${t.spared.join(', ')} free</span>` : '';
+    const dirTxt = t.dir ? ` &nbsp;·&nbsp; ${t.dir==='back' ? 'return leg' : 'outbound'}` : '';
     return `<div class="trip-row">
       <div style="flex:1; min-width:0;">
         <div class="trip-names">${names}${sparedTxt}</div>
-        <div class="trip-meta">${t.date} &nbsp;·&nbsp; ${t.km} km &nbsp;·&nbsp; €${t.totalCost.toFixed(2)} total</div>
+        <div class="trip-meta">${t.date} &nbsp;·&nbsp; ${t.km} km &nbsp;·&nbsp; €${t.totalCost.toFixed(2)} total${dirTxt}</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
         <div class="trip-amt">€${t.perPerson.toFixed(2)}</div>
@@ -973,6 +1310,14 @@ function renderSettings() {
         <button class="btn danger" onclick="removeMember(${m.id})">Remove</button>
       </div>`).join('')
     : '<div style="font-size:13px;color:var(--muted);padding:4px 0;">No crew yet</div>';
+
+  const learned = Object.keys(S.routeMemory||{}).length;
+  document.getElementById('forget-routes-btn').textContent = learned
+    ? `Forget learned distances (${learned})`
+    : 'Forget learned distances';
+  document.getElementById('forget-routes-sub').textContent = learned
+    ? `${learned} route${learned===1?'':'s'} remembered. The km of a route you've driven before fills itself in automatically.`
+    : `Nothing learned yet. Once you log a trip, its km fills itself in next time you pick the same crew and route.`;
 
   document.getElementById('presets-list').innerHTML = S.presets.length
     ? S.presets.map(p=>`<div class="preset-row">
@@ -1080,6 +1425,8 @@ function selectTripAddr(type, id) {
   if (type==='home') tripHome = id;
   else tripClub = id;
   renderRouteSelector();
+  updateDirectionBtn();
+  applyAutoKm();
   updatePreview();
 }
 
@@ -1137,9 +1484,17 @@ function clearTrips() {
   S.trips=[];
   persist(); renderLog();
 }
+function forgetRoutes() {
+  const n = Object.keys(S.routeMemory||{}).length;
+  if (!n) return;
+  if (!confirm(`Forget ${n} learned route distance${n===1?'':'s'}? Kilometers will no longer fill themselves in.`)) return;
+  S.routeMemory={};
+  if (kmSource==='auto') { document.getElementById('km-input').value=''; kmSource=null; }
+  persist(); renderSettings(); renderTrip();
+}
 
 /* ── INIT ── */
-hydrate(); renderTrip(); renderSettings();
+hydrate(); restorePendingDrive(); renderTrip(); renderSettings();
 </script>
 </body>
 </html>
