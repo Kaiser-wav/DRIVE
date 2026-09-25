@@ -26,6 +26,10 @@
   --glow-soft:rgba(74,114,245,0.07); --glow-mid:rgba(74,114,245,0.22); --glow-strong:rgba(74,114,245,0.42);
   --nav-bg:rgba(11,13,25,0.84);
   --card-shadow:0 2px 10px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.035);
+  --danger:#e0796c; --danger-bg:rgba(192,87,74,0.12); --danger-bd:rgba(192,87,74,0.3);
+  --toast-shadow:0 10px 30px rgba(0,0,0,0.4);
+  /* chart series — validated for CVD separation + lightness band on --bg2 */
+  --chart-crew:#4a72f5; --chart-you:#b8893f;
 }
 
 /* ── LIGHT — Warm Beige ── */
@@ -45,13 +49,16 @@ html[data-theme="light"] {
   --glow-soft:rgba(26,60,200,0.04); --glow-mid:rgba(26,60,200,0.11); --glow-strong:rgba(26,60,200,0.2);
   --nav-bg:rgba(232,225,205,0.88);
   --card-shadow:0 1px 3px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.55);
+  --danger:#a8402f; --danger-bg:rgba(168,64,47,0.08); --danger-bd:rgba(168,64,47,0.22);
+  --toast-shadow:0 8px 24px rgba(40,30,10,0.18);
+  --chart-crew:#1a3cc8; --chart-you:#8b5f0c;
 }
 
 body { background-color:var(--bg); background-image:radial-gradient(ellipse 90% 50% at 50% 0%, var(--glow-soft) 0%, transparent 68%), radial-gradient(ellipse 60% 30% at 80% 90%, rgba(167,139,250,0.04) 0%, transparent 60%); color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:15px; min-height:100vh; -webkit-font-smoothing:antialiased; }
 
 /* ── BOTTOM NAV ── */
 nav { position:fixed; bottom:0; left:0; right:0; z-index:50; display:flex; background:var(--nav-bg); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border-top:1px solid var(--border2); padding:0 4px; padding-bottom:env(safe-area-inset-bottom,0px); }
-nav button { flex:1; padding:13px 6px 12px; background:none; border:none; font-family:'Instrument Sans',sans-serif; font-size:12px; font-weight:500; color:var(--muted); letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; transition:color 0.15s; border-top:2px solid transparent; margin-top:-1px; }
+nav button { flex:1; padding:13px 2px 12px; background:none; border:none; font-family:'Instrument Sans',sans-serif; font-size:11px; font-weight:500; color:var(--muted); letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; transition:color 0.15s; border-top:2px solid transparent; margin-top:-1px; }
 nav button.active { color:var(--coral); border-top-color:var(--coral); text-shadow:0 0 14px var(--glow-mid); }
 nav button:hover:not(.active) { color:var(--muted2); }
 
@@ -62,8 +69,11 @@ nav button:hover:not(.active) { color:var(--muted2); }
 .page-title { font-family:'Fraunces',serif; font-size:26px; font-weight:300; font-style:italic; color:var(--text); margin-bottom:20px; }
 .page-title span { color:var(--coral); }
 
-input[type=text],input[type=number] { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:var(--r-sm); padding:11px 14px; color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:16px; outline:none; transition:border-color 0.15s; -moz-appearance:textfield; }
+input[type=text],input[type=number],input[type=date] { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:var(--r-sm); padding:11px 14px; color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:16px; outline:none; transition:border-color 0.15s; -moz-appearance:textfield; }
 input::-webkit-inner-spin-button { -webkit-appearance:none; }
+input[type=date] { -webkit-appearance:none; appearance:none; min-height:44px; color-scheme:dark; }
+html[data-theme="light"] input[type=date] { color-scheme:light; }
+input[type=date]::-webkit-date-and-time-value { text-align:left; }
 input:focus { border-color:var(--border2); }
 input::placeholder { color:var(--muted); }
 .igroup { margin-bottom:10px; }
@@ -105,6 +115,8 @@ input::placeholder { color:var(--muted); }
 .preview { background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:16px 18px; margin:0 0 14px; display:none; }
 .preview-big { font-family:'Fraunces',serif; font-size:38px; font-weight:300; color:var(--coral); line-height:1; margin-bottom:5px; }
 .preview-cap { font-size:12px; color:var(--muted); letter-spacing:0.05em; }
+.preview-rates { font-size:11px; color:var(--muted); margin-top:6px; cursor:pointer; letter-spacing:0.02em; }
+.preview-rates:hover { color:var(--muted2); }
 .preview-stats { display:flex; flex-wrap:wrap; gap:4px 18px; margin-top:14px; padding-top:13px; border-top:1px solid var(--border); font-size:12px; color:var(--muted); letter-spacing:0.02em; }
 .preview-stats b { font-family:'Fraunces',serif; font-size:16px; font-weight:400; color:var(--text); margin-right:4px; }
 .preview-sub { font-size:13px; color:var(--muted2); line-height:1.6; margin-top:10px; }
@@ -197,7 +209,7 @@ input::placeholder { color:var(--muted); }
 /* Modals */
 .overlay { display:none; position:fixed; inset:0; background:var(--overlay-bg); z-index:200; align-items:flex-end; justify-content:center; }
 .overlay.open { display:flex; }
-.modal { background:var(--bg2); border:1px solid var(--border2); border-radius:20px 20px 0 0; padding:24px 20px 40px; width:100%; max-width:500px; }
+.modal { background:var(--bg2); border:1px solid var(--border2); border-radius:20px 20px 0 0; padding:24px 20px 40px; width:100%; max-width:500px; max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .modal-title { font-family:'Fraunces',serif; font-size:22px; font-weight:300; margin-bottom:2px; }
 .modal-sub { font-size:13px; color:var(--muted2); margin-bottom:20px; }
 
@@ -239,6 +251,73 @@ hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
 .flip-spinning { animation:spinFlip 0.38s cubic-bezier(0.4,0,0.2,1); }
 @keyframes labelSwap { 0%{opacity:1;transform:translateY(0)} 35%{opacity:0;transform:translateY(-5px)} 65%{opacity:0;transform:translateY(5px)} 100%{opacity:1;transform:translateY(0)} }
 .label-swapping { animation:labelSwap 0.38s ease; }
+
+/* ── TOAST ── */
+.toast-wrap { position:fixed; left:0; right:0; bottom:calc(58px + env(safe-area-inset-bottom,0px)); z-index:250; display:flex; justify-content:center; padding:0 16px 10px; pointer-events:none; }
+.toast { pointer-events:auto; display:flex; align-items:center; gap:12px; width:100%; max-width:468px; background:var(--bg4); border:1px solid var(--border2); border-radius:12px; padding:11px 10px 11px 14px; font-size:14px; color:var(--text); box-shadow:var(--toast-shadow); transform:translateY(14px); opacity:0; transition:transform 0.3s cubic-bezier(0.22,1,0.36,1), opacity 0.2s; }
+.toast.show { transform:none; opacity:1; }
+.toast-dot { width:7px; height:7px; border-radius:50%; background:var(--green); flex-shrink:0; }
+.toast.err .toast-dot { background:var(--danger); }
+.toast-msg { flex:1; min-width:0; line-height:1.4; }
+.toast-action { background:none; border:none; color:var(--coral2); font-family:'Instrument Sans',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; cursor:pointer; padding:8px 8px; border-radius:6px; flex-shrink:0; }
+.toast-action:active { background:var(--bg3); }
+
+/* ── SHEETS (edit forms, confirms, person detail) ── */
+.sheet-label { font-size:11px; font-weight:600; letter-spacing:0.09em; text-transform:uppercase; color:var(--muted); margin:18px 0 6px; }
+.mini-list { border-top:1px solid var(--border); }
+.mini-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px; color:var(--muted2); }
+.mini-row b { color:var(--text); font-weight:500; }
+.mini-row em { font-style:normal; color:var(--muted); font-size:11px; }
+.mini-row.paid b { color:var(--green); }
+.modal-sub.owes { color:var(--coral2); }
+.modal-sub.credit { color:var(--cyan); }
+.sheet-actions { margin-top:20px; }
+.draft-preview { font-size:13px; color:var(--muted2); background:var(--bg3); border-radius:var(--r-sm); padding:11px 14px; margin-top:12px; line-height:1.5; }
+.draft-preview b { font-family:'Fraunces',serif; font-weight:400; font-size:17px; color:var(--text); }
+.btn.danger-solid { background:var(--danger-bg); border-color:var(--danger-bd); color:var(--danger); }
+.btn.danger-solid:hover { filter:brightness(1.1); background:var(--danger-bg); }
+
+/* Tappable list rows — full-bleed press state inside cards */
+.tap { cursor:pointer; margin:0 -18px; padding-left:18px !important; padding-right:18px !important; transition:background-color 0.15s; }
+.tap:active { background:var(--bg3); }
+@media (hover:hover) { .tap:hover { background:var(--bg3); } }
+.row-chev { color:var(--muted); flex-shrink:0; display:flex; }
+
+/* Trip date pill */
+.label-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.label-row .label { margin-bottom:0; }
+.date-pill { position:relative; display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:500; color:var(--muted2); padding:5px 10px 5px 11px; border-radius:100px; border:1px solid var(--border); background:var(--bg2); cursor:pointer; transition:color 0.2s,border-color 0.2s,background-color 0.2s; }
+.date-pill:hover { border-color:var(--border2); color:var(--text); }
+.date-pill.past { color:var(--amber); border-color:var(--amber-bd); background:var(--amber-bg); }
+.date-pill input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; min-height:0; padding:0; border:0; }
+.date-reset { background:none; border:none; color:var(--muted); font-size:12px; font-family:'Instrument Sans',sans-serif; cursor:pointer; padding:5px 4px; }
+.date-reset:hover { color:var(--text); }
+
+/* Crew chips: tap toggles, the trailing dots open pickup options */
+.chip-more { margin:-9px -12px -9px 0; padding:9px 12px 9px 8px; font-weight:700; letter-spacing:0.05em; opacity:0.65; line-height:1; }
+.chip-more:hover { opacity:1; }
+.chip-hint { font-size:11px; color:var(--muted); margin-top:-4px; line-height:1.5; }
+
+/* Hero numbers (debts total, stats) */
+.hero-num { font-family:'Fraunces',serif; font-size:44px; font-weight:300; line-height:1; color:var(--text); }
+.hero-num.owed { color:var(--coral2); }
+.hero-num.settled { font-size:30px; font-style:italic; color:var(--green); }
+.hero-cap { font-size:12px; color:var(--muted); letter-spacing:0.04em; margin-top:7px; }
+.cover-bar { height:6px; border-radius:100px; background:var(--chart-you); margin-top:18px; overflow:hidden; display:flex; }
+.cover-bar span { display:block; height:100%; background:var(--chart-crew); border-right:2px solid var(--bg2); }
+.cover-cap { font-size:12px; color:var(--muted2); margin-top:8px; }
+
+.debt-info { flex:1; min-width:0; }
+.debt-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+
+/* Weekly chart */
+.chart-legend { display:flex; gap:16px; font-size:12px; color:var(--muted2); margin-bottom:12px; }
+.chart-legend span { display:inline-flex; align-items:center; gap:6px; }
+.swatch { width:10px; height:10px; border-radius:3px; display:inline-block; }
+.week-chart svg { width:100%; display:block; overflow:visible; }
+.week-col { cursor:pointer; }
+.chart-detail { font-size:13px; color:var(--muted2); margin-top:12px; padding-top:12px; border-top:1px solid var(--border); line-height:1.55; min-height:52px; }
+.chart-detail b { color:var(--text); font-weight:500; }
 
 /* ── PREMIUM ANIMATIONS ── */
 
@@ -354,6 +433,7 @@ html.theme-anim .preview {
     <div class="chips" id="crew-chips">
       <div style="font-size:13px; color:var(--muted);">Add your crew in Settings first</div>
     </div>
+    <div class="chip-hint" id="chip-hint" style="display:none;">Tap a name to add or remove · <b>⋯</b> for another pickup address or a free ride</div>
     <button class="btn repeat" id="repeat-btn" onclick="repeatLastTrip()" style="display:none;"></button>
   </div>
 
@@ -389,10 +469,21 @@ html.theme-anim .preview {
     <div class="preset-chips" id="preset-chips"></div>
   </div>
 
-  <div class="label outcome" id="preview-label" style="display:none;">This trip</div>
+  <div class="label-row" id="preview-label" style="display:none;">
+    <div class="label outcome">This trip</div>
+    <div style="display:flex; align-items:center; gap:2px;">
+      <button class="date-reset" id="date-reset" onclick="resetTripDate()" style="display:none;">Today</button>
+      <label class="date-pill" id="date-pill">
+        <span id="date-pill-txt">Today</span>
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <input type="date" id="trip-date" onchange="onTripDate(this.value)" aria-label="Date of this trip" />
+      </label>
+    </div>
+  </div>
   <div class="preview" id="preview">
     <div class="preview-big" id="preview-big">—</div>
     <div class="preview-cap" id="preview-cap">per passenger</div>
+    <div class="preview-rates" id="preview-rates" onclick="showScreen('settings')" title="Change in Settings → Vehicle"></div>
     <div class="preview-stats" id="preview-stats"></div>
     <div class="preview-sub" id="preview-sub"></div>
     <div class="route-viz" id="route-viz" onclick="openMapsOnly()"></div>
@@ -409,23 +500,34 @@ html.theme-anim .preview {
 <!-- DEBTS -->
 <div id="s-debts" class="screen">
   <div class="page-title">Who <span>owes</span> you</div>
+  <div class="card" id="debts-hero" style="display:none;"></div>
   <div class="card" id="debts-card"><div id="debts-body"></div></div>
-  <div class="empty" id="debts-empty" style="display:none;">All settled up</div>
+  <div class="empty" id="debts-empty" style="display:none;">Nobody owes you anything yet.<br>Log a trip and balances show up here.</div>
 </div>
 
 <!-- LOG -->
 <div id="s-log" class="screen">
   <div class="page-title">Trip <span>history</span></div>
-  <div class="card" id="stats-card" style="display:none;">
-    <div class="toggle-pill">
+  <div id="log-body"></div>
+  <div class="empty" id="log-empty" style="display:none;">No trips yet.<br>Everything you log and every payment shows up here.</div>
+</div>
+
+<!-- STATS -->
+<div id="s-stats" class="screen">
+  <div class="page-title">Your <span>numbers</span></div>
+  <div id="stats-content">
+    <div class="toggle-pill" style="margin-bottom:14px;">
+      <button id="st-week" onclick="setStatsRange('week')">This week</button>
       <button id="st-month" onclick="setStatsRange('month')">This month</button>
       <button id="st-all" onclick="setStatsRange('all')">All time</button>
     </div>
-    <div id="stats-body"></div>
+    <div class="card" id="stats-hero"></div>
+    <div class="label" style="margin-top:8px;">Last 8 weeks</div>
+    <div class="card" id="stats-chart"></div>
+    <div class="label" id="stats-people-label" style="margin-top:8px;">Crew</div>
+    <div class="card" id="stats-people"></div>
   </div>
-  <div class="label" id="log-label" style="margin-top:8px;">Trips &amp; payments</div>
-  <div class="card" id="log-card"><div id="log-body"></div></div>
-  <div class="empty" id="log-empty" style="display:none;">No trips yet</div>
+  <div class="empty" id="stats-empty" style="display:none;">Log a trip and your numbers show up here.</div>
 </div>
 
 <!-- SETTINGS -->
@@ -505,11 +607,19 @@ html.theme-anim .preview {
 
 <!-- BOTTOM NAV -->
 <nav>
-  <button class="active" onclick="showScreen('trip',this)">Trip</button>
-  <button onclick="showScreen('debts',this)">Debts</button>
-  <button onclick="showScreen('log',this)">Log</button>
-  <button onclick="showScreen('settings',this)">Settings</button>
+  <button class="active" id="nav-trip" onclick="showScreen('trip')">Trip</button>
+  <button id="nav-debts" onclick="showScreen('debts')">Debts</button>
+  <button id="nav-log" onclick="showScreen('log')">Log</button>
+  <button id="nav-stats" onclick="showScreen('stats')">Stats</button>
+  <button id="nav-settings" onclick="showScreen('settings')">Settings</button>
 </nav>
+
+<div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
+
+<!-- GENERIC SHEET — edit forms, confirms, person detail -->
+<div class="overlay" id="sheet-overlay">
+  <div class="modal" id="sheet-body"></div>
+</div>
 
 <!-- CHIP CONFIG MODAL -->
 <div class="overlay" id="chip-overlay">
@@ -555,10 +665,7 @@ html.theme-anim .preview {
       </div>
     </div>
     <hr>
-    <div style="display:flex; gap:8px;">
-      <button class="btn ghost" style="flex:1;" onclick="closePayModal()">Cancel</button>
-      <button class="btn danger" onclick="deleteDebt()">Remove entry</button>
-    </div>
+    <button class="btn ghost full" onclick="closePayModal()">Cancel</button>
   </div>
 </div>
 
@@ -582,7 +689,11 @@ let tripClub = null;
 let tripDirection = 'there';
 let kmSource = null;   // null | 'auto' | 'manual' | 'preset'
 let returnPrompt = null;  // session-only nudge to log the way back
-let statsRange = 'month'; // 'month' | 'all' — log screen stats card
+let statsRange = 'month'; // 'week' | 'month' | 'all' — stats screen
+let chartSel = null;      // selected week index in the stats chart (null = latest)
+let tripDate = null;      // null = today, else 'YYYY-MM-DD' to log a past day
+let sheetName = null;     // person shown in the person sheet
+let editDraft = null;     // trip being edited in the trip sheet
 
 const PENDING_MAX_AGE = 12*60*60*1000;  // an armed drive older than this is dropped
 
@@ -594,6 +705,7 @@ function hydrate() {
   if (!S.payments) S.payments = [];
   // Trips logged before `ts` existed carry their timestamp in the id.
   S.trips.forEach(t => { if (!t.ts) t.ts = t.id; });
+  sortHistory();
   applyTheme(S.settings.theme || 'dark', false);
 }
 
@@ -616,15 +728,27 @@ function applyTheme(t, save) {
   if (btnLight) btnLight.classList.toggle('active', t === 'light');
 }
 
-function showScreen(id, btn) {
+function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById('s-'+id).classList.add('active');
-  if (btn) btn.classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  window.scrollTo(0,0);
   if (id==='debts') renderDebts();
   if (id==='log') renderLog();
+  if (id==='stats') renderStats();
   if (id==='settings') renderSettings();
   if (id==='trip') renderTrip();
+}
+
+// Re-render the trip form plus whichever screen is showing.
+function renderAll() {
+  renderTrip();
+  const id = document.querySelector('.screen.active').id.slice(2);
+  if (id==='debts') renderDebts();
+  if (id==='log') renderLog();
+  if (id==='stats') renderStats();
+  if (id==='settings') renderSettings();
 }
 
 function sv(k,v) { S.settings[k]=isNaN(parseFloat(v))||v===''?v:parseFloat(v); persist(); }
@@ -632,6 +756,108 @@ function ini(n) { return esc(n.split(' ').map(w=>w[0]).join('').toUpperCase().sl
 // Names and addresses are user text — escape before they go into innerHTML.
 function esc(s) { return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function sortHistory() {
+  S.trips.sort((a,b) => (b.ts||b.id) - (a.ts||a.id));
+  S.payments.sort((a,b) => b.ts - a.ts);
+}
+const CHEV = '<span class="row-chev"><svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+
+/* ── DAYS ── */
+function isoDay(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function dayLabel(iso) {
+  const y = new Date(); y.setDate(y.getDate()-1);
+  if (iso === isoDay(new Date())) return 'Today';
+  if (iso === isoDay(y)) return 'Yesterday';
+  const [Y,M,D] = iso.split('-').map(Number);
+  const o = { weekday:'short', day:'numeric', month:'short' };
+  if (Y !== new Date().getFullYear()) o.year = 'numeric';
+  return new Date(Y,M-1,D).toLocaleDateString('en-GB', o);
+}
+function dayWord(iso) { const l = dayLabel(iso); return l==='Yesterday' ? 'yesterday' : l; }
+// A timestamp on the given day, keeping the time of day from `timeFrom` (default: now)
+function tsForDay(iso, timeFrom) {
+  const [Y,M,D] = iso.split('-').map(Number), t = new Date(timeFrom || Date.now());
+  return new Date(Y,M-1,D,t.getHours(),t.getMinutes(),t.getSeconds()).getTime();
+}
+
+/* ── TOAST ── */
+let toastTimer = null;
+function toast(msg, opts={}) {
+  const wrap = document.getElementById('toast-wrap');
+  wrap.innerHTML = `<div class="toast ${opts.error?'err':''}" role="status"><span class="toast-dot"></span><div class="toast-msg">${esc(msg)}</div>${opts.action?`<button class="toast-action" id="toast-action">${esc(opts.action.label)}</button>`:''}</div>`;
+  const el = wrap.firstChild;
+  if (opts.action) document.getElementById('toast-action').onclick = () => { hideToast(); opts.action.fn(); };
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, opts.action ? 6000 : 3000);
+}
+function hideToast() {
+  const el = document.querySelector('#toast-wrap .toast');
+  if (!el) return;
+  el.classList.remove('show');
+  setTimeout(() => { if (!el.classList.contains('show')) el.remove(); }, 300);
+}
+
+/* ── UNDO ──
+   Every change to saved data that isn't a bulk reset goes through here: apply
+   it, save, re-render, and offer a few seconds to take it back. */
+function withUndo(msg, mutate, onUndo) {
+  const before = clone(S);
+  mutate();
+  sortHistory();
+  persist();
+  renderAll();
+  toast(msg, { action:{ label:'Undo', fn:() => {
+    S = before; persist();
+    if (onUndo) onUndo();
+    renderAll();
+  }}});
+}
+
+/* ── SHEET ── one bottom sheet for edit forms, confirms and the person view */
+let sheetOnClose = null;
+function openSheet(html, onClose) {
+  document.getElementById('sheet-body').innerHTML = html;
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.getElementById('sheet-body').scrollTop = 0;
+  sheetOnClose = onClose || null;
+}
+function closeSheet() {
+  document.getElementById('sheet-overlay').classList.remove('open');
+  const f = sheetOnClose; sheetOnClose = null;
+  if (f) f();
+}
+function confirmSheet({ title, body, ok='Confirm', danger=false }) {
+  return new Promise(resolve => {
+    openSheet(`<div class="modal-title">${esc(title)}</div><div class="modal-sub" style="line-height:1.5;">${body}</div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn ghost" style="flex:1;" id="cf-no">Cancel</button>
+        <button class="btn ${danger?'danger-solid':'coral'}" style="flex:2;" id="cf-yes">${esc(ok)}</button>
+      </div>`, () => resolve(false));
+    document.getElementById('cf-no').onclick = () => closeSheet();
+    document.getElementById('cf-yes').onclick = () => { sheetOnClose = null; closeSheet(); resolve(true); };
+  });
+}
+// A simple edit form: labelled inputs, Save, and an optional destructive action.
+function formSheet({ title, sub='', fields, save, remove, removeLabel='Remove' }) {
+  openSheet(`<div class="modal-title">${esc(title)}</div>
+    ${sub ? `<div class="modal-sub">${sub}</div>` : '<div style="height:16px;"></div>'}
+    ${fields.map((f,i) => `<div class="igroup"><label>${esc(f.label)}</label>
+      <input type="${f.type||'text'}" id="ff-${i}" value="${esc(f.value)}" placeholder="${esc(f.placeholder||'')}" ${f.type==='number'?'step="0.1" min="0"':''} /></div>`).join('')}
+    <hr>
+    <div style="display:flex; gap:8px;">
+      ${remove ? `<button class="btn danger" id="ff-remove">${esc(removeLabel)}</button>` : ''}
+      <div style="flex:1;"></div>
+      <button class="btn ghost" onclick="closeSheet()">Cancel</button>
+      <button class="btn coral" id="ff-save">Save</button>
+    </div>`);
+  document.getElementById('ff-save').onclick = () => {
+    const vals = fields.map((f,i) => document.getElementById('ff-'+i).value.trim());
+    closeSheet();
+    if (save(vals) === false) formSheet({ title, sub, fields:fields.map((f,i)=>({...f, value:vals[i]})), save, remove, removeLabel });
+  };
+  if (remove) document.getElementById('ff-remove').onclick = () => { closeSheet(); remove(); };
+}
 function fmtDate(ts) {
   const d = new Date(ts), o = { day:'2-digit', month:'short' };
   if (d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
@@ -652,11 +878,13 @@ function renderTrip() {
       if (isOn && ov.cameToMe === 'spare') { cls='spared'; badge='<span class="chip-badge">free</span>'; }
       else if (isOn && ov.cameToMe === 'pays') { cls='came-pays'; badge='<span class="chip-badge">no detour</span>'; }
       else if (isOn && ov.addr) { badge='<span class="chip-badge">↻</span>'; }
-      return `<div class="chip ${cls}" style="animation-delay:${idx*28}ms" onclick="${isOn ? `openChipModal(${m.id})` : `quickAddMember(${m.id})`}">
-        <span class="pip"></span>${esc(m.name)}${badge}
+      const more = isOn ? `<span class="chip-more" onclick="event.stopPropagation(); openChipModal(${m.id})" aria-label="Pickup options">⋯</span>` : '';
+      return `<div class="chip ${cls}" style="animation-delay:${idx*28}ms" onclick="toggleMember(${m.id})">
+        <span class="pip"></span>${esc(m.name)}${badge}${more}
       </div>`;
     }).join('');
   }
+  document.getElementById('chip-hint').style.display = checkedIds.size ? '' : 'none';
   const pc = document.getElementById('preset-chips');
   pc.innerHTML = S.presets.map(p =>
     `<div class="preset-chip" onclick="usePreset(${p.km})">${esc(p.name)} <span style="color:var(--muted);font-size:11px;">${p.km}km</span></div>`
@@ -770,18 +998,18 @@ function calcSplit(km) {
 }
 
 /* ── ROUTE MEMORY — learn the km of each route so it fills itself in ── */
-function routeSignature() {
+function routeSignature(crew=[...checkedIds], overrides=tripOverrides, home=activeTripHome(), club=activeTripClub()) {
   // Direction is left out on purpose: there and back cover the same ground,
   // so a distance learned one way auto-fills the other.
-  const stops = [...checkedIds].map(id => {
+  const stops = crew.map(id => {
     const m = S.members.find(m=>m.id===id);
     if (!m) return null;
-    const ov = tripOverrides[id]||{};
+    const ov = overrides[id]||{};
     if (ov.cameToMe) return null;   // no detour → doesn't change the distance
     return (ov.addr || m.addr || m.name).toLowerCase().trim();
   }).filter(Boolean).sort();
   const norm = s => (s||'').toLowerCase().trim();
-  return [norm(activeTripHome()), stops.join('>'), norm(activeTripClub())].join('|');
+  return [norm(home), stops.join('>'), norm(club)].join('|');
 }
 
 function rememberRoute(km) {
@@ -823,6 +1051,7 @@ function updatePreview() {
   renderKmHint();
   renderPending();
   renderActions();
+  renderDatePill();
 
   // The outcome panel shows as soon as there's anything to show — a route to
   // draw or a crew to split between — not only once km is filled in.
@@ -853,6 +1082,12 @@ function updatePreview() {
     !has ? 'add a distance above to see the split'
     : paying.length ? 'each passenger pays' : 'fuel for this trip — riding solo';
 
+  // The rates this split is based on — tap to change them in Settings.
+  const st = S.settings;
+  document.getElementById('preview-rates').textContent =
+    `${parseFloat(st.consumption)||7.5} L/100km · €${(parseFloat(st.gasPrice)||1.79).toFixed(2)}/L`
+    + (parseFloat(st.surcharge) ? ` · +€${parseFloat(st.surcharge).toFixed(2)}/km surcharge` : '');
+
   document.getElementById('preview-stats').innerHTML = [
     `<span><b>${has ? km : '—'}</b>km</span>`,
     `<span><b>${total}</b>splitting</span>`,
@@ -881,6 +1116,12 @@ function renderActions() {
   }
 
   primary.classList.toggle('idle', !(km > 0));
+  // A trip on a past day was already driven — no point opening Maps for it.
+  if (tripDate) {
+    primary.innerHTML = `Log for ${esc(dayWord(tripDate))}${amount}`;
+    row.innerHTML = '';
+    return;
+  }
   primary.innerHTML = canMap
     ? `${MAPS_ICON}Open Maps &amp; log${amount}`
     : `Log trip${amount}`;
@@ -890,6 +1131,25 @@ function renderActions() {
        <button class="btn" onclick="openMapsOnly()">Open Maps only</button>`
     : `<div class="action-note">Add a home and club address in Settings to open routes in Maps</div>`;
 }
+
+/* ── TRIP DATE ── subtle pill for logging a ride on a past day */
+function renderDatePill() {
+  const today = isoDay(new Date());
+  const input = document.getElementById('trip-date');
+  input.max = today;
+  input.value = tripDate || today;
+  document.getElementById('date-pill-txt').textContent = tripDate ? dayLabel(tripDate) : 'Today';
+  document.getElementById('date-pill').classList.toggle('past', !!tripDate);
+  document.getElementById('date-reset').style.display = tripDate ? '' : 'none';
+}
+function onTripDate(v) {
+  const today = isoDay(new Date());
+  if (v && v > today) toast("Trips can't be logged in the future", { error:true });
+  tripDate = v && v < today ? v : null;
+  renderDatePill();
+  renderActions();
+}
+function resetTripDate() { tripDate = null; renderDatePill(); renderActions(); }
 
 /* ── ROUTE VIZ ── */
 function renderRouteViz(km) {
@@ -976,10 +1236,13 @@ function shortAddr(addr) {
 }
 
 /* ── CHIP MODAL ── */
-function quickAddMember(id) {
-  checkedIds.add(id);
+// Tap = in or out of the car. Special cases (free ride, other pickup) live behind the ⋯.
+function toggleMember(id) {
+  if (checkedIds.has(id)) { checkedIds.delete(id); delete tripOverrides[id]; }
+  else checkedIds.add(id);
   renderTrip();
 }
+const quickAddMember = toggleMember;   // legacy name
 
 function openChipModal(id) {
   chipModalId = id;
@@ -1064,14 +1327,16 @@ function closeChipModal(confirm) {
 document.getElementById('chip-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeChipModal(false); });
 
 /* ── ACTIVE ROUTE ENDPOINTS ── */
-function activeTripHome() {
-  if (tripHome) { const h=(S.settings.homeAddrs||[]).find(h=>h.id===tripHome); if(h) return h.addr; }
+function homeAddrFor(id) {
+  if (id) { const h=(S.settings.homeAddrs||[]).find(h=>h.id===id); if(h) return h.addr; }
   return S.settings.homeAddr;
 }
-function activeTripClub() {
-  if (tripClub) { const c=(S.settings.clubAddrs||[]).find(c=>c.id===tripClub); if(c) return c.addr; }
+function clubAddrFor(id) {
+  if (id) { const c=(S.settings.clubAddrs||[]).find(c=>c.id===id); if(c) return c.addr; }
   return S.settings.clubAddr;
 }
+function activeTripHome() { return homeAddrFor(tripHome); }
+function activeTripClub() { return clubAddrFor(tripClub); }
 
 /* ── MAPS ── */
 const MAPS_ICON = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0;margin-right:8px;vertical-align:-1px"><path d="M1.5 11.5L11.5 1.5M11.5 1.5H4.5M11.5 1.5V8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1099,7 +1364,8 @@ function buildMapsUrl() {
 // The loud button: does the whole job in one tap.
 function primaryAction() {
   const km = parseFloat(document.getElementById('km-input').value);
-  if (!km || km<=0) { focusKmInput(); return; }
+  if (!km || km<=0) { toast('Add the kilometers first', { error:true }); focusKmInput(); return; }
+  if (tripDate) { logTrip(); return; }
   const url = buildMapsUrl();
   if (url) window.open(url, '_blank');
   logTrip();
@@ -1112,7 +1378,7 @@ function logOnly() { logTrip(); }
 // back. Arms the pending banner so the trip survives the trip to Maps.
 function openMapsOnly() {
   const url = buildMapsUrl();
-  if (!url) { alert('Add home and club address in Settings first.'); return; }
+  if (!url) { toast('Add a home and club address in Settings first', { error:true }); return; }
   armPendingDrive();
   window.open(url, '_blank');
 }
@@ -1210,37 +1476,53 @@ function renderPending() {
 document.addEventListener('visibilitychange', () => { if (!document.hidden) renderPending(); });
 
 /* ── LOG TRIP ── */
+function fuelPerKm() { return (parseFloat(S.settings.consumption)||7.5) * (parseFloat(S.settings.gasPrice)||1.79) / 100; }
+
+function snapshotSession() {
+  return { crew:[...checkedIds], overrides:clone(tripOverrides), home:tripHome, club:tripClub, dir:tripDirection,
+           km:document.getElementById('km-input').value, kmSource, date:tripDate };
+}
+function restoreSession(x) {
+  checkedIds = new Set(x.crew.filter(id => S.members.some(m=>m.id===id)));
+  tripOverrides = x.overrides; tripHome = x.home; tripClub = x.club; tripDirection = x.dir;
+  document.getElementById('km-input').value = x.km; kmSource = x.kmSource; tripDate = x.date;
+}
+
 // One call = one one-way trip. The way back is always logged separately,
 // because the crew coming home is often not the crew that came out.
 function logTrip() {
   const km = parseFloat(document.getElementById('km-input').value);
-  if (!km||km<=0) { alert('Enter kilometers first'); focusKmInput(); return; }
+  if (!km||km<=0) { toast('Add the kilometers first', { error:true }); focusKmInput(); return; }
   const { paying, spared, fuel, perPass: rawPer } = calcSplit(km);
   const perPass = +rawPer.toFixed(2);
+  const before = clone(S), session = snapshotSession();
 
   rememberRoute(km);
 
-  const now = Date.now();
+  const ts = tripDate ? tsForDay(tripDate) : Date.now();
   S.trips.unshift({
-    id: now, ts: now,
-    date: fmtDate(now),
+    id: Date.now(), ts,
+    date: fmtDate(ts),
     km, totalCost:+fuel.toFixed(2), perPerson:perPass,
     passengers:paying.map(p=>p.name),
     spared:spared.map(p=>p.name),
     dir: tripDirection,
+    // the rates this trip was priced at, so editing it later doesn't reprice it
+    rates: { fuelPerKm: fuelPerKm(), surchPerKm: parseFloat(S.settings.surcharge)||0 },
     // everything "Same as last time" needs to rebuild this trip exactly
     setup: { crew:[...checkedIds], overrides:clone(tripOverrides), home:tripHome, club:tripClub }
   });
+  sortHistory();
   paying.forEach(p => { S.debts[p.name] = +((S.debts[p.name]||0)+perPass).toFixed(2); });
   S.pendingDrive = null;
   persist();
 
-  // Offer the way back as a starting point — same crew, flipped route, still
-  // fully editable before it's logged.
+  // Offer the way back as a starting point — same crew, flipped route, same
+  // day, still fully editable before it's logged.
   returnPrompt = tripDirection === 'there' ? {
     crew: [...checkedIds],
     overrides: clone(tripOverrides),
-    km, home: tripHome, club: tripClub,
+    km, home: tripHome, club: tripClub, date: tripDate,
     names: paying.concat(spared).map(p=>p.name),
     from: activeTripHome() ? shortAddr(activeTripHome()) : 'Home',
     to:   activeTripClub() ? shortAddr(activeTripClub()) : 'Club'
@@ -1250,6 +1532,7 @@ function logTrip() {
   tripOverrides = {};
   tripHome = null;
   tripClub = null;
+  tripDate = null;
   kmSource = null;
   document.getElementById('km-input').value='';
   document.getElementById('preview').style.display='none';
@@ -1259,6 +1542,16 @@ function logTrip() {
   btn.textContent = '✓ Logged';
   btn.classList.add('saved');
   setTimeout(()=>{ btn.classList.remove('saved'); renderActions(); }, 1500);
+
+  const when = session.date ? ` for ${dayWord(session.date)}` : '';
+  const what = paying.length ? `€${perPass.toFixed(2)} each from ${paying.map(p=>p.name).join(', ')}` : `€${fuel.toFixed(2)} solo`;
+  toast(`Logged${when} — ${what}`, { action:{ label:'Undo', fn:() => {
+    S = before; persist();
+    restoreSession(session);
+    returnPrompt = null;
+    renderAll();
+    toast('Undone — nothing was logged');
+  }}});
 }
 
 /* ── RETURN LEG ── */
@@ -1283,6 +1576,7 @@ function setupReturn() {
   tripDirection = 'back';
   tripHome = r.home;
   tripClub = r.club;
+  tripDate = r.date || null;
   checkedIds = new Set(r.crew.filter(id => S.members.some(m=>m.id===id)));
   tripOverrides = r.overrides;
   document.getElementById('km-input').value = r.km;
@@ -1294,88 +1588,357 @@ function dismissReturn() { returnPrompt = null; renderReturnPrompt(); }
 
 /* ── DEBTS ── */
 function renderDebts() {
-  const names = Object.keys(S.debts);
+  const names = Object.keys(S.debts).sort((a,b) => (S.debts[b]||0)-(S.debts[a]||0) || a.localeCompare(b));
+  const hero = document.getElementById('debts-hero');
   if (!names.length) {
+    hero.style.display='none';
     document.getElementById('debts-card').style.display='none';
     document.getElementById('debts-empty').style.display='block';
     return;
   }
   document.getElementById('debts-card').style.display='block';
   document.getElementById('debts-empty').style.display='none';
+
+  const owing = names.filter(n => S.debts[n] > 0);
+  const total = owing.reduce((s,n) => s+S.debts[n], 0);
+  hero.style.display='block';
+  hero.innerHTML = total > 0
+    ? `<div class="hero-num owed">€${total.toFixed(2)}</div><div class="hero-cap">outstanding from ${owing.length} ${owing.length===1?'person':'people'} · tap someone to see why or send a reminder</div>`
+    : `<div class="hero-num settled">All settled up</div><div class="hero-cap">nobody owes you anything right now</div>`;
+
   document.getElementById('debts-body').innerHTML = names.map(name => {
     const amt = S.debts[name]||0;
     const cls = amt<0?'credit':amt===0?'clear':'owing';
     const lbl = amt<0?`−€${Math.abs(amt).toFixed(2)}`:`€${amt.toFixed(2)}`;
-    return `<div class="debt-row">
+    const rides = amt > 0 ? debtBreakdown(name).rides.length : 0;
+    const lastPay = S.payments.find(p => p.name===name);
+    const sub = [amt>0 ? `${rides} unpaid ride${rides===1?'':'s'}` : amt<0 ? 'has credit' : 'settled',
+                 lastPay ? `paid ${fmtDate(lastPay.ts)}` : ''].filter(Boolean).join(' · ');
+    return `<div class="debt-row tap" data-name="${esc(name)}" onclick="openPerson(this.dataset.name)">
       <div class="avatar">${ini(name)}</div>
-      <div class="debt-name">${esc(name)}</div>
-      <div class="debt-amount ${cls}" data-name="${esc(name)}" onclick="openPayModal(this.dataset.name)">${lbl}</div>
+      <div class="debt-info"><div class="debt-name">${esc(name)}</div><div class="debt-sub">${sub}</div></div>
+      <div class="debt-amount ${cls}">${lbl}</div>${CHEV}
     </div>`;
   }).join('');
 }
 
+// Which rides make up someone's balance: walk back from the newest ride until
+// the balance is covered (payments settle the oldest rides first).
+function debtBreakdown(name) {
+  let left = +(S.debts[name]||0).toFixed(2);
+  const rides = [];
+  if (left <= 0) return { rides, earlier:0 };
+  for (const t of S.trips) {
+    if (left <= 0.004) break;
+    if (!t.passengers.includes(name)) continue;
+    const part = +Math.min(t.perPerson, left).toFixed(2);
+    rides.push({ t, part });
+    left = +(left - part).toFixed(2);
+  }
+  return { rides, earlier: left > 0.004 ? left : 0 };
+}
+
+/* ── PERSON SHEET ── balance breakdown, reminder, payment */
+function openPerson(name) {
+  sheetName = name;
+  const amt = S.debts[name]||0;
+  const { rides, earlier } = debtBreakdown(name);
+  const pays = S.payments.filter(p => p.name===name).slice(0,3);
+  const status = amt>0 ? `Owes you €${amt.toFixed(2)}` : amt<0 ? `Has €${Math.abs(amt).toFixed(2)} credit` : 'All settled up';
+  const rideRows = rides.map(({t,part}) => `<div class="mini-row">
+      <span>${fmtDate(t.ts||t.id)} · ${t.km} km${t.dir ? ` · ${t.dir==='back'?'return':'outbound'}` : ''}</span>
+      <span><b>€${part.toFixed(2)}</b>${part < t.perPerson-0.004 ? ` <em>rest of €${t.perPerson.toFixed(2)}</em>` : ''}</span>
+    </div>`).join('');
+  const earlierRow = earlier ? `<div class="mini-row"><span>Earlier balance</span><span><b>€${earlier.toFixed(2)}</b></span></div>` : '';
+  const payRows = pays.map(p => `<div class="mini-row paid"><span>${fmtDate(p.ts)}</span><span><b>+€${p.amt.toFixed(2)}</b></span></div>`).join('');
+
+  openSheet(`
+    <div class="modal-title">${esc(name)}</div>
+    <div class="modal-sub ${amt>0?'owes':amt<0?'credit':''}">${status}</div>
+    ${rideRows||earlierRow ? `<div class="sheet-label">What it's for</div><div class="mini-list">${rideRows}${earlierRow}</div>` : ''}
+    ${payRows ? `<div class="sheet-label">Recent payments</div><div class="mini-list">${payRows}</div>` : ''}
+    <div class="sheet-actions">
+      ${amt>0 ? `<button class="btn coral full" onclick="sendRequest(sheetName)">Send payment reminder</button>` : ''}
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn" style="flex:1;" onclick="closeSheet(); openPayModal(sheetName)">Record payment</button>
+        ${amt>0 ? `<button class="btn" style="flex:1;" onclick="copyRequest(sheetName)">Copy message</button>` : ''}
+      </div>
+    </div>
+    <hr>
+    <div style="display:flex; justify-content:space-between;">
+      <button class="btn ghost" onclick="closeSheet()">Close</button>
+      <button class="btn danger" onclick="removeDebtEntry(sheetName)">Remove from list</button>
+    </div>`);
+}
+
+function removeDebtEntry(name) {
+  closeSheet();
+  withUndo(`Removed ${name} from the debts list`, () => { delete S.debts[name]; });
+}
+
+/* ── PAYMENT REMINDER ── */
+function requestText(name) {
+  const amt = S.debts[name]||0;
+  const { rides, earlier } = debtBreakdown(name);
+  const lines = rides.slice().reverse().map(({t,part}) =>
+    `• ${fmtDate(t.ts||t.id)} · ${t.km} km — €${part.toFixed(2)}`);
+  if (earlier) lines.unshift(`• earlier balance — €${earlier.toFixed(2)}`);
+  return `Hey ${name.split(' ')[0]}! Carpool update: you owe €${amt.toFixed(2)} for ${rides.length} ride${rides.length===1?'':'s'}.\n\n${lines.join('\n')}\n\nThanks!`;
+}
+async function sendRequest(name) {
+  const text = requestText(name);
+  if (navigator.share) {
+    try { await navigator.share({ text }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+}
+async function copyRequest(name) {
+  const ok = await copyText(requestText(name));
+  toast(ok ? 'Copied — paste it into your chat' : "Couldn't copy in this browser", { error:!ok });
+}
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = t; ta.style.position = 'absolute'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (_) {}
+    ta.remove(); return ok;
+  }
+}
+
 /* ── LOG ── */
-// Trips and payments in one timeline, newest first.
+// Trips and payments in one timeline, newest first, one card per month.
 function renderLog() {
-  renderStats();
   const items = [
     ...S.trips.map(t => ({ ts:t.ts||t.id, html:tripRowHTML(t) })),
     ...S.payments.map(p => ({ ts:p.ts, html:paymentRowHTML(p) }))
   ].sort((a,b) => b.ts - a.ts);
-  const empty = !items.length;
-  document.getElementById('log-card').style.display = empty ? 'none' : 'block';
-  document.getElementById('log-label').style.display = empty ? 'none' : '';
-  document.getElementById('log-empty').style.display = empty ? 'block' : 'none';
-  document.getElementById('log-body').innerHTML = items.map(i=>i.html).join('');
+  document.getElementById('log-empty').style.display = items.length ? 'none' : 'block';
+  const groups = [];
+  items.forEach(i => {
+    const d = new Date(i.ts), key = d.getFullYear()*12 + d.getMonth();
+    if (!groups.length || groups[groups.length-1].key !== key) {
+      const o = { month:'long' };
+      if (d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+      groups.push({ key, label:d.toLocaleDateString('en-GB', o), rows:[] });
+    }
+    groups[groups.length-1].rows.push(i.html);
+  });
+  document.getElementById('log-body').innerHTML = groups.map(g =>
+    `<div class="label">${g.label}</div><div class="card" style="padding-top:4px; padding-bottom:4px;">${g.rows.join('')}</div>`).join('');
 }
 
 function tripRowHTML(t) {
   const names = t.passengers.length ? esc(t.passengers.join(', ')) : 'Solo';
   const sparedTxt = t.spared&&t.spared.length ? ` · <span style="color:var(--amber);">${esc(t.spared.join(', '))} free</span>` : '';
-  const dirTxt = t.dir ? ` &nbsp;·&nbsp; ${t.dir==='back' ? 'return leg' : 'outbound'}` : '';
-  return `<div class="trip-row">
+  const dirTxt = t.dir ? ` &nbsp;·&nbsp; ${t.dir==='back' ? 'return' : 'outbound'}` : '';
+  return `<div class="trip-row tap" onclick="editTrip(${t.id})">
     <div style="flex:1; min-width:0;">
       <div class="trip-names">${names}${sparedTxt}</div>
-      <div class="trip-meta">${fmtDate(t.ts||t.id)} &nbsp;·&nbsp; ${t.km} km &nbsp;·&nbsp; €${t.totalCost.toFixed(2)} total${dirTxt}</div>
+      <div class="trip-meta">${fmtDate(t.ts||t.id)} &nbsp;·&nbsp; ${t.km} km &nbsp;·&nbsp; €${t.totalCost.toFixed(2)} fuel${dirTxt}</div>
     </div>
-    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
-      <div class="trip-amt">€${t.perPerson.toFixed(2)}</div>
-      <button class="btn danger" style="padding:6px 10px; font-size:12px;" onclick="deleteTrip(${t.id})">✕</button>
+    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0; align-self:center;">
+      <div class="trip-amt">€${t.perPerson.toFixed(2)}</div>${CHEV}
     </div>
   </div>`;
 }
 
 function paymentRowHTML(p) {
-  return `<div class="trip-row">
+  return `<div class="trip-row tap" onclick="editPayment(${p.id})">
     <div style="flex:1; min-width:0;">
       <div class="trip-names paid">${esc(p.name)} paid</div>
       <div class="trip-meta">${fmtDate(p.ts)} &nbsp;·&nbsp; payment</div>
     </div>
-    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
-      <div class="trip-amt paid">+€${p.amt.toFixed(2)}</div>
-      <button class="btn danger" style="padding:6px 10px; font-size:12px;" onclick="deletePayment(${p.id})">✕</button>
+    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0; align-self:center;">
+      <div class="trip-amt paid">+€${p.amt.toFixed(2)}</div>${CHEV}
     </div>
   </div>`;
 }
 
+/* ── EDIT TRIP ── */
+// The rates a trip was priced at. Older trips didn't store them, so derive
+// them from what was saved: fuel/km from the total, surcharge from the split.
+function tripRates(t) {
+  if (t.rates) return t.rates;
+  const n = t.passengers.length;
+  let surch = n && t.km ? n*(t.perPerson - t.totalCost/(n+1)) / t.km : 0;
+  surch = surch >= 0.005 ? +surch.toFixed(2) : 0;
+  return { fuelPerKm: t.km ? t.totalCost/t.km : fuelPerKm(), surchPerKm: surch };
+}
+// Same formula as calcSplit(), on a trip's own rates.
+function splitFor(km, nPaying, rates) {
+  const fuel = km * rates.fuelPerKm;
+  return { fuel, per: fuel/(nPaying+1) + (nPaying ? rates.surchPerKm*km/nPaying : 0) };
+}
+
+function editTrip(id) {
+  const t = S.trips.find(t=>t.id===id);
+  if (!t) return;
+  const names = [...new Set([...t.passengers, ...(t.spared||[]), ...S.members.map(m=>m.name)])];
+  editDraft = {
+    id, names, km:t.km, dir:t.dir||'there', rates:tripRates(t), oldPer:t.perPerson,
+    who: names.map(n => t.passengers.includes(n) ? 'pays' : (t.spared||[]).includes(n) ? 'free' : 'off')
+  };
+  openSheet(`
+    <div class="modal-title">Edit trip</div>
+    <div class="modal-sub">Balances update to match</div>
+    <div style="display:flex; gap:8px;">
+      <div class="igroup" style="flex:1; min-width:0;"><label>Date</label><input type="date" id="et-date" max="${isoDay(new Date())}" value="${isoDay(new Date(t.ts||t.id))}" /></div>
+      <div class="igroup" style="flex:1; min-width:0;"><label>Kilometers</label><input type="number" id="et-km" step="0.1" min="0.1" value="${t.km}" oninput="editDraft.km=parseFloat(this.value); renderTripDraft()" /></div>
+    </div>
+    <div class="igroup"><label>Direction</label>
+      <div class="toggle-pill"><button id="et-there" onclick="editDraft.dir='there'; renderTripDraft()">Outbound</button><button id="et-back" onclick="editDraft.dir='back'; renderTripDraft()">Return</button></div>
+    </div>
+    <div class="igroup" style="margin-top:14px;"><label>Who rode — tap to switch between pays, free and not in the car</label>
+      <div class="chips" id="et-who" style="margin:8px 0 0;"></div>
+    </div>
+    <div class="draft-preview" id="et-preview"></div>
+    <hr>
+    <div style="display:flex; gap:8px;">
+      <button class="btn danger" onclick="deleteTrip(editDraft.id)">Delete</button>
+      <div style="flex:1;"></div>
+      <button class="btn ghost" onclick="closeSheet()">Cancel</button>
+      <button class="btn coral" onclick="saveTripEdit()">Save</button>
+    </div>`);
+  renderTripDraft();
+}
+
+function cycleWho(i) {
+  const order = ['pays','free','off'];
+  editDraft.who[i] = order[(order.indexOf(editDraft.who[i])+1) % 3];
+  renderTripDraft();
+}
+
+function renderTripDraft() {
+  const d = editDraft;
+  document.getElementById('et-there').classList.toggle('active', d.dir==='there');
+  document.getElementById('et-back').classList.toggle('active', d.dir==='back');
+  document.getElementById('et-who').innerHTML = d.names.map((n,i) => {
+    const w = d.who[i];
+    return `<div class="chip ${w==='pays'?'on':w==='free'?'spared':''}" style="animation:none;" onclick="cycleWho(${i})"><span class="pip"></span>${esc(n)}${w==='free'?'<span class="chip-badge">free</span>':''}</div>`;
+  }).join('');
+  const nPay = d.who.filter(w=>w==='pays').length, nFree = d.who.filter(w=>w==='free').length;
+  const pv = document.getElementById('et-preview');
+  if (!(d.km > 0)) { pv.innerHTML = 'Enter the kilometers to see the split'; return; }
+  const { fuel, per } = splitFor(d.km, nPay, d.rates);
+  const changed = nPay && Math.abs(+per.toFixed(2) - d.oldPer) > 0.004;
+  pv.innerHTML = nPay
+    ? `<b>€${per.toFixed(2)}</b> each · ${nPay} paying${nFree?` · ${nFree} free`:''} · €${fuel.toFixed(2)} fuel${changed?`<br><span style="color:var(--muted);">was €${d.oldPer.toFixed(2)} each</span>`:''}`
+    : `<b>€${fuel.toFixed(2)}</b> fuel · nobody paying`;
+}
+
+function saveTripEdit() {
+  const d = editDraft;
+  const km = parseFloat(document.getElementById('et-km').value);
+  const day = document.getElementById('et-date').value;
+  if (!(km > 0)) { toast('Add the kilometers', { error:true }); return; }
+  if (day && day > isoDay(new Date())) { toast("Trips can't be in the future", { error:true }); return; }
+  const paying = d.names.filter((n,i) => d.who[i]==='pays');
+  const spared = d.names.filter((n,i) => d.who[i]==='free');
+  const { fuel, per } = splitFor(km, paying.length, d.rates);
+  const perR = +per.toFixed(2);
+  closeSheet();
+  withUndo('Trip updated', () => {
+    const t = S.trips.find(t=>t.id===d.id);
+    t.passengers.forEach(n => { if (S.debts[n]!==undefined) S.debts[n] = +(S.debts[n]-t.perPerson).toFixed(2); });
+    paying.forEach(n => { S.debts[n] = +((S.debts[n]||0)+perR).toFixed(2); });
+    // A corrected distance also corrects what the app learned for that route.
+    if (km !== t.km && t.setup) {
+      const sig = routeSignature(t.setup.crew||[], t.setup.overrides||{}, homeAddrFor(t.setup.home), clubAddrFor(t.setup.club));
+      const mem = S.routeMemory[sig];
+      if (mem && mem.km === t.km) mem.km = km;
+    }
+    const ts = day ? tsForDay(day, t.ts||t.id) : (t.ts||t.id);
+    if (t.setup) {
+      const byName = n => (S.members.find(m=>m.name===n)||{}).id;
+      const crew = [...paying, ...spared].map(byName).filter(Boolean);
+      const ov = {};
+      crew.forEach(id => {
+        const prev = (t.setup.overrides||{})[id] || { addr:null, cameToMe:null };
+        const free = spared.includes(S.members.find(m=>m.id===id).name);
+        ov[id] = { ...prev, cameToMe: free ? 'spare' : prev.cameToMe==='spare' ? null : prev.cameToMe };
+      });
+      t.setup = { ...t.setup, crew, overrides:ov };
+    }
+    Object.assign(t, { km, ts, date:fmtDate(ts), totalCost:+fuel.toFixed(2), perPerson:perR,
+                       passengers:paying, spared, dir:d.dir, rates:d.rates });
+  });
+}
+
+function deleteTrip(id) {
+  closeSheet();
+  withUndo('Trip deleted — balances reversed', () => {
+    const t = S.trips.find(t=>t.id===id);
+    (t.passengers||[]).forEach(name => {
+      if (S.debts[name]!==undefined) S.debts[name] = +((S.debts[name]-t.perPerson).toFixed(2));
+    });
+    S.trips = S.trips.filter(t=>t.id!==id);
+  });
+}
+
+/* ── EDIT PAYMENT ── */
+function editPayment(id) {
+  const p = S.payments.find(p=>p.id===id);
+  if (!p) return;
+  openSheet(`
+    <div class="modal-title">${esc(p.name)} paid</div>
+    <div class="modal-sub">${esc(p.name)}'s balance updates to match</div>
+    <div style="display:flex; gap:8px;">
+      <div class="igroup" style="flex:1; min-width:0;"><label>Amount (€)</label><input type="number" id="ep-amt" step="0.01" min="0.01" value="${p.amt.toFixed(2)}" /></div>
+      <div class="igroup" style="flex:1; min-width:0;"><label>Date</label><input type="date" id="ep-date" max="${isoDay(new Date())}" value="${isoDay(new Date(p.ts))}" /></div>
+    </div>
+    <hr>
+    <div style="display:flex; gap:8px;">
+      <button class="btn danger" onclick="deletePayment(${p.id})">Delete</button>
+      <div style="flex:1;"></div>
+      <button class="btn ghost" onclick="closeSheet()">Cancel</button>
+      <button class="btn coral" onclick="savePayment(${p.id})">Save</button>
+    </div>`);
+}
+function savePayment(id) {
+  const amt = parseFloat(document.getElementById('ep-amt').value);
+  const day = document.getElementById('ep-date').value;
+  if (!(amt > 0)) { toast('Enter an amount', { error:true }); return; }
+  closeSheet();
+  withUndo('Payment updated', () => {
+    const p = S.payments.find(p=>p.id===id);
+    S.debts[p.name] = +((S.debts[p.name]||0) + p.amt - amt).toFixed(2);
+    p.amt = +amt.toFixed(2);
+    if (day) p.ts = tsForDay(day, p.ts);
+  });
+}
+function deletePayment(id) {
+  const p = S.payments.find(p=>p.id===id);
+  closeSheet();
+  withUndo(`Payment deleted — €${p.amt.toFixed(2)} added back to ${p.name}`, () => {
+    S.debts[p.name] = +(((S.debts[p.name]||0)+p.amt).toFixed(2));
+    S.payments = S.payments.filter(x=>x.id!==id);
+  });
+}
+
 /* ── STATS ── */
 function setStatsRange(r) { statsRange = r; renderStats(); }
+function weekStart(ts) {
+  const d = new Date(ts); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - (d.getDay()+6)%7);   // Monday
+  return d.getTime();
+}
+function eur(v) { return `${v<0?'−':''}€${Math.abs(v).toFixed(2)}`; }
 
 function renderStats() {
-  const card = document.getElementById('stats-card');
-  if (!S.trips.length && !S.payments.length) { card.style.display='none'; return; }
-  card.style.display = 'block';
-  document.getElementById('st-month').classList.toggle('active', statsRange==='month');
-  document.getElementById('st-all').classList.toggle('active', statsRange==='all');
+  const empty = !S.trips.length && !S.payments.length;
+  document.getElementById('stats-content').style.display = empty ? 'none' : '';
+  document.getElementById('stats-empty').style.display = empty ? 'block' : 'none';
+  if (empty) return;
+  ['week','month','all'].forEach(r => document.getElementById('st-'+r).classList.toggle('active', statsRange===r));
 
   const now = new Date();
-  const inRange = ts => {
-    if (statsRange === 'all') return true;
-    const d = new Date(ts);
-    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
-  };
-  const trips = S.trips.filter(t => inRange(t.ts||t.id));
-  const paidBack = S.payments.filter(p => inRange(p.ts)).reduce((s,p) => s+p.amt, 0);
+  const from = statsRange==='week' ? weekStart(now) : statsRange==='month' ? new Date(now.getFullYear(), now.getMonth(), 1).getTime() : -Infinity;
+  const period = { week:'this week', month:'this month', all:'so far' }[statsRange];
+  const trips = S.trips.filter(t => (t.ts||t.id) >= from);
+  const paidBack = S.payments.filter(p => p.ts >= from).reduce((s,p) => s+p.amt, 0);
 
   let km = 0, fuel = 0, charged = 0;
   const people = {};
@@ -1386,30 +1949,102 @@ function renderStats() {
     t.passengers.forEach(n => { const p = person(n); p.rides++; p.charged += t.perPerson; });
     (t.spared||[]).forEach(n => { const p = person(n); p.rides++; p.free++; });
   });
-  // What the driving actually cost you: fuel minus what the crew was charged.
+  // What driving actually cost you: fuel minus what the crew was charged.
   // Negative when the surcharge more than covers your share.
   const yours = fuel - charged;
-  const eur = v => `${v<0?'−':''}€${Math.abs(v).toFixed(2)}`;
-  const km1 = Math.round(km*10)/10;
-
+  const covered = fuel ? Math.min(100, Math.round(charged/fuel*100)) : 0;
   const stat = (num, lbl, cls='') => `<div><div class="stat-num ${cls}">${num}</div><div class="stat-lbl">${lbl}</div></div>`;
-  const rows = Object.entries(people).sort((a,b) => b[1].rides - a[1].rides).map(([n,p]) => `
+
+  document.getElementById('stats-hero').innerHTML = !trips.length && !paidBack
+    ? `<div class="empty" style="padding:18px 0;">Nothing logged ${period} yet</div>`
+    : `<div class="hero-num">${yours < 0 ? '+'+eur(-yours) : eur(yours)}</div>
+       <div class="hero-cap">${yours < 0 ? 'you came out ahead' : 'what driving cost you'} ${period}</div>
+       ${fuel ? `<div class="cover-bar" role="img" aria-label="Crew covered ${covered}% of the fuel"><span style="width:${covered}%;"></span></div>
+       <div class="cover-cap">The crew covered <b style="color:var(--text); font-weight:500;">${covered}%</b> of ${eur(fuel)} fuel</div>` : ''}
+       <div class="stats-grid">
+         ${stat(trips.length, `trip${trips.length===1?'':'s'} · ${Math.round(km*10)/10} km`)}
+         ${stat(eur(fuel), 'fuel burned')}
+         ${stat(eur(charged), 'charged to crew')}
+         ${stat(eur(paidBack), 'paid back to you', 'green')}
+       </div>`;
+
+  renderWeekChart();
+
+  const rows = Object.entries(people).sort((a,b) => b[1].rides - a[1].rides || b[1].charged - a[1].charged).map(([n,p]) => `
     <div class="stat-person">
       <div class="avatar">${ini(n)}</div>
       <div class="stat-person-name">${esc(n)} <span class="stat-person-meta">· ${p.rides} ride${p.rides===1?'':'s'}${p.free?`, ${p.free} free`:''}</span></div>
       <div class="stat-person-amt">€${p.charged.toFixed(2)}</div>
     </div>`).join('');
+  document.getElementById('stats-people-label').style.display = rows ? '' : 'none';
+  document.getElementById('stats-people').style.display = rows ? '' : 'none';
+  document.getElementById('stats-people').innerHTML = rows ? `<div style="margin-top:-10px;">${rows}</div>` : '';
+}
 
-  document.getElementById('stats-body').innerHTML = !trips.length && !paidBack
-    ? `<div class="empty" style="padding:20px 0 4px;">Nothing logged this month yet</div>`
-    : `<div class="stats-grid">
-        ${stat(trips.length, `trip${trips.length===1?'':'s'} · ${km1} km`)}
-        ${stat(eur(fuel), 'fuel burned')}
-        ${stat(eur(charged), 'charged to crew', 'coral')}
-        ${stat(eur(paidBack), 'paid back to you', 'green')}
-        ${stat(eur(yours), yours < 0 ? 'you came out ahead' : 'your share', 'amber')}
-      </div>
-      ${rows ? `<div class="stat-people">${rows}</div>` : ''}`;
+// Stacked bars per week: what the crew paid (bottom) + your share (top) = fuel.
+function renderWeekChart() {
+  const N = 8, thisWeek = weekStart(Date.now()), weeks = [];
+  for (let i = N-1; i >= 0; i--) {
+    const d = new Date(thisWeek); d.setDate(d.getDate() - 7*i);
+    weeks.push({ start:d.getTime(), trips:0, km:0, fuel:0, charged:0 });
+  }
+  S.trips.forEach(t => {
+    const w = weeks.find(w => w.start === weekStart(t.ts||t.id));
+    if (w) { w.trips++; w.km += t.km; w.fuel += t.totalCost; w.charged += t.perPerson*t.passengers.length; }
+  });
+  weeks.forEach(w => { w.crew = Math.min(w.charged, w.fuel); w.you = Math.max(0, w.fuel - w.charged); });
+
+  const max = Math.max(...weeks.map(w => w.fuel));
+  const top = max <= 0 ? 10 : max <= 10 ? Math.ceil(max) : Math.ceil(max/5)*5;
+  const W = 320, H = 150, plotTop = 14, base = H - 24, plotH = base - plotTop;
+  const slot = W / N, bw = Math.round(slot * 0.52);
+  const sel = chartSel == null ? N-1 : chartSel;
+  const fmtShort = ts => new Date(ts).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+
+  // Top segment gets 4px rounded corners; it's anchored square at the baseline.
+  const roundTop = (x, y, w, h) => {
+    const r = Math.min(4, h, w/2);
+    return `M${x},${y+h} V${y+r} Q${x},${y} ${x+r},${y} H${x+w-r} Q${x+w},${y} ${x+w},${y+r} V${y+h} Z`;
+  };
+  const cols = weeks.map((w, i) => {
+    const x = Math.round(i*slot + (slot-bw)/2);
+    const hc = w.crew/top*plotH, hy = w.you/top*plotH;
+    const gap = hc > 0 && hy > 0 ? 2 : 0;
+    const dim = i === sel ? 1 : 0.45;
+    let marks = '';
+    if (hc > 0) marks += hy > 0
+      ? `<rect x="${x}" y="${base-hc}" width="${bw}" height="${hc}" fill="var(--chart-crew)"/>`
+      : `<path d="${roundTop(x, base-hc, bw, hc)}" fill="var(--chart-crew)"/>`;
+    if (hy > 0) marks += `<path d="${roundTop(x, base-hc-gap-hy, bw, hy)}" fill="var(--chart-you)"/>`;
+    if (!w.fuel) marks = `<rect x="${x}" y="${base-2}" width="${bw}" height="2" rx="1" fill="var(--border2)"/>`;
+    return `<g class="week-col" onclick="chartSel=${i}; renderWeekChart()" opacity="${dim}">
+      <title>Week of ${fmtShort(w.start)}: ${eur(w.fuel)} fuel</title>
+      <rect x="${i*slot}" y="0" width="${slot}" height="${H}" fill="transparent"/>
+      ${marks}
+      <text x="${x+bw/2}" y="${H-6}" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="Instrument Sans,sans-serif">${i===N-1 ? 'This wk' : fmtShort(w.start)}</text>
+    </g>`;
+  }).join('');
+
+  const w = weeks[sel];
+  const end = new Date(w.start); end.setDate(end.getDate()+6);
+  const range = `${new Date(w.start).getDate()}–${fmtShort(end.getTime())}`;
+  document.getElementById('stats-chart').innerHTML = `
+    <div class="chart-legend">
+      <span><i class="swatch" style="background:var(--chart-crew);"></i>Crew paid</span>
+      <span><i class="swatch" style="background:var(--chart-you);"></i>Your share</span>
+    </div>
+    <div class="week-chart">
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fuel cost per week for the last 8 weeks">
+        <line x1="0" x2="${W}" y1="${plotTop}" y2="${plotTop}" stroke="var(--border)" stroke-dasharray="3 3"/>
+        <text x="${W}" y="${plotTop-4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="Instrument Sans,sans-serif">€${top}</text>
+        <line x1="0" x2="${W}" y1="${base}" y2="${base}" stroke="var(--border2)"/>
+        ${cols}
+      </svg>
+    </div>
+    <div class="chart-detail">
+      <b>${range}</b> · ${w.trips ? `${w.trips} trip${w.trips===1?'':'s'} · ${Math.round(w.km*10)/10} km · ${eur(w.fuel)} fuel<br>
+      Crew paid ${eur(w.crew)} · your share ${eur(w.fuel - w.charged)}` : 'no trips this week'}
+    </div>`;
 }
 
 /* ── SETTINGS ── */
@@ -1431,23 +2066,20 @@ function renderSettings() {
 
   document.getElementById('home-addrs-hr').style.display = homeAddrs.length ? '' : 'none';
   document.getElementById('home-addrs-list').innerHTML = homeAddrs.map(h=>
-    `<div class="preset-row">
-      <span>${esc(h.label)} <span style="color:var(--muted);font-size:12px;">${esc(shortAddr(h.addr))}</span></span>
-      <button class="btn danger" onclick="removeHomeAddr(${h.id})">Remove</button>
+    `<div class="preset-row tap" onclick="editAltAddr('home',${h.id})">
+      <span>${esc(h.label)} <span style="color:var(--muted);font-size:12px;">${esc(shortAddr(h.addr))}</span></span>${CHEV}
     </div>`).join('');
 
   document.getElementById('club-addrs-hr').style.display = clubAddrs.length ? '' : 'none';
   document.getElementById('club-addrs-list').innerHTML = clubAddrs.map(c=>
-    `<div class="preset-row">
-      <span>${esc(c.label)} <span style="color:var(--muted);font-size:12px;">${esc(shortAddr(c.addr))}</span></span>
-      <button class="btn danger" onclick="removeClubAddr(${c.id})">Remove</button>
+    `<div class="preset-row tap" onclick="editAltAddr('club',${c.id})">
+      <span>${esc(c.label)} <span style="color:var(--muted);font-size:12px;">${esc(shortAddr(c.addr))}</span></span>${CHEV}
     </div>`).join('');
 
   document.getElementById('members-list').innerHTML = S.members.length
-    ? S.members.map(m=>`<div class="member-row">
+    ? S.members.map(m=>`<div class="member-row tap" onclick="editMember(${m.id})">
         <div class="avatar">${ini(m.name)}</div>
-        <div class="member-info"><div class="member-name-txt">${esc(m.name)}</div><div class="member-addr-txt">${m.addr?esc(m.addr):'No address'}</div></div>
-        <button class="btn danger" onclick="removeMember(${m.id})">Remove</button>
+        <div class="member-info"><div class="member-name-txt">${esc(m.name)}</div><div class="member-addr-txt">${m.addr?esc(m.addr):'No address'}</div></div>${CHEV}
       </div>`).join('')
     : '<div style="font-size:13px;color:var(--muted);padding:4px 0;">No crew yet</div>';
 
@@ -1462,9 +2094,8 @@ function renderSettings() {
     : `Nothing learned yet. Once you log a trip, its km fills itself in next time you pick the same crew and route.`;
 
   document.getElementById('presets-list').innerHTML = S.presets.length
-    ? S.presets.map(p=>`<div class="preset-row">
-        <span>${esc(p.name)} <span style="color:var(--muted);font-size:12px;">${p.km} km</span></span>
-        <button class="btn danger" onclick="removePreset(${p.id})">Remove</button>
+    ? S.presets.map(p=>`<div class="preset-row tap" onclick="editPreset(${p.id})">
+        <span>${esc(p.name)} <span style="color:var(--muted);font-size:12px;">${p.km} km</span></span>${CHEV}
       </div>`).join('')
     : '<div style="font-size:13px;color:var(--muted);padding:4px 0;">No presets yet</div>';
 }
@@ -1472,31 +2103,86 @@ function renderSettings() {
 function addMember() {
   const name=document.getElementById('n-name').value.trim();
   const addr=document.getElementById('n-addr').value.trim();
-  if (!name) return;
+  if (!name) { toast('Give them a name first', { error:true }); return; }
+  if (S.members.some(m=>m.name.toLowerCase()===name.toLowerCase())) { toast(`${name} is already in the crew`, { error:true }); return; }
   S.members.push({id:Date.now(),name,addr});
   if (S.debts[name]===undefined) S.debts[name]=0;
   document.getElementById('n-name').value='';
   document.getElementById('n-addr').value='';
   persist(); renderSettings(); renderTrip();
+  toast(`${name} joined the crew`);
 }
+
+function editMember(id) {
+  const m = S.members.find(m=>m.id===id);
+  if (!m) return;
+  formSheet({
+    title: m.name, sub: 'Renaming keeps their balance and ride history',
+    fields: [
+      { label:'Name', value:m.name },
+      { label:'Address (for the Maps route)', value:m.addr||'', placeholder:'e.g. Musterstr. 5, Saarbrücken' }
+    ],
+    save: ([name, addr]) => {
+      if (!name) { toast("Name can't be empty", { error:true }); return false; }
+      if (S.members.some(x=>x.id!==id && x.name.toLowerCase()===name.toLowerCase())) { toast(`There's already a ${name}`, { error:true }); return false; }
+      const old = m.name;
+      withUndo(old!==name ? `Renamed ${old} to ${name}` : `Saved ${name}`, () => {
+        const mm = S.members.find(x=>x.id===id);
+        if (mm.name !== name) renameEverywhere(mm.name, name);
+        mm.name = name; mm.addr = addr;
+      });
+    },
+    remove: () => removeMember(id), removeLabel: 'Remove from crew'
+  });
+}
+
+// Debts, trips and payments are keyed by name, so a rename has to follow through.
+function renameEverywhere(from, to) {
+  if (S.debts[from] !== undefined) {
+    S.debts[to] = +((S.debts[to]||0) + S.debts[from]).toFixed(2);
+    delete S.debts[from];
+  }
+  const swap = arr => (arr||[]).map(n => n===from ? to : n);
+  S.trips.forEach(t => { t.passengers = swap(t.passengers); t.spared = swap(t.spared); });
+  S.payments.forEach(p => { if (p.name===from) p.name = to; });
+}
+
 function removeMember(id) {
-  const m=S.members.find(m=>m.id===id);
-  if (!m||!confirm(`Remove ${m.name}?`)) return;
-  S.members=S.members.filter(m=>m.id!==id);
-  persist(); renderSettings(); renderTrip();
+  const m = S.members.find(m=>m.id===id);
+  if (!m) return;
+  checkedIds.delete(id); delete tripOverrides[id];
+  withUndo(`Removed ${m.name} — their balance stays in Debts`, () => {
+    S.members = S.members.filter(x=>x.id!==id);
+  });
 }
+
 function addPreset() {
   const name=document.getElementById('p-name').value.trim();
   const km=parseFloat(document.getElementById('p-km').value);
-  if (!name||!km) return;
+  if (!name||!(km>0)) { toast('Give the preset a name and a distance', { error:true }); return; }
   S.presets.push({id:Date.now(),name,km});
   document.getElementById('p-name').value='';
   document.getElementById('p-km').value='';
   persist(); renderSettings(); renderTrip();
+  toast(`Preset "${name}" added`);
+}
+function editPreset(id) {
+  const p = S.presets.find(p=>p.id===id);
+  if (!p) return;
+  formSheet({
+    title: 'Edit preset',
+    fields: [{ label:'Label', value:p.name }, { label:'Kilometers', value:p.km, type:'number' }],
+    save: ([name, kmStr]) => {
+      const km = parseFloat(kmStr);
+      if (!name || !(km>0)) { toast('Give it a name and a distance', { error:true }); return false; }
+      withUndo('Preset saved', () => { const x = S.presets.find(x=>x.id===id); x.name = name; x.km = km; });
+    },
+    remove: () => removePreset(id)
+  });
 }
 function removePreset(id) {
-  S.presets=S.presets.filter(p=>p.id!==id);
-  persist(); renderSettings(); renderTrip();
+  const p = S.presets.find(p=>p.id===id);
+  withUndo(`Removed preset "${p.name}"`, () => { S.presets = S.presets.filter(x=>x.id!==id); });
 }
 
 /* ── PAY MODAL ── */
@@ -1518,21 +2204,21 @@ function selPill(el,val) {
 }
 function applyPayment() {
   const amt=parseFloat(document.getElementById('pay-custom').value);
-  if (!amt||amt<=0) { closePayModal(); return; }
-  S.debts[payModalName]=+((S.debts[payModalName]||0)-amt).toFixed(2);
-  const now=Date.now();
-  S.payments.unshift({ id:now, ts:now, name:payModalName, amt:+amt.toFixed(2) });
-  persist(); closePayModal(); renderDebts();
-}
-function deleteDebt() {
-  delete S.debts[payModalName];
-  persist(); closePayModal(); renderDebts();
+  if (!amt||amt<=0) { toast('Pick or enter an amount', { error:true }); return; }
+  const name = payModalName;
+  closePayModal();
+  withUndo(`${name} paid €${amt.toFixed(2)}`, () => {
+    S.debts[name]=+((S.debts[name]||0)-amt).toFixed(2);
+    const now=Date.now();
+    S.payments.unshift({ id:now, ts:now, name, amt:+amt.toFixed(2) });
+  });
 }
 function closePayModal() {
   document.getElementById('pay-overlay').classList.remove('open');
   payModalName=null;
 }
 document.getElementById('pay-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closePayModal();});
+document.getElementById('sheet-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSheet();});
 
 /* ── ROUTE SELECTOR ── */
 function renderRouteSelector() {
@@ -1575,56 +2261,44 @@ function selectTripAddr(type, id) {
 }
 
 /* ── ALT ADDRESSES ── */
-function addHomeAddr() {
-  const label=document.getElementById('ha-label').value.trim();
-  const addr=document.getElementById('ha-addr').value.trim();
-  if (!label||!addr) return;
-  if (!S.settings.homeAddrs) S.settings.homeAddrs=[];
-  S.settings.homeAddrs.push({id:Date.now(),label,addr});
-  document.getElementById('ha-label').value='';
-  document.getElementById('ha-addr').value='';
+function addAltAddr(type) {
+  const pre = type==='home' ? 'ha' : 'ca', key = type==='home' ? 'homeAddrs' : 'clubAddrs';
+  const label=document.getElementById(pre+'-label').value.trim();
+  const addr=document.getElementById(pre+'-addr').value.trim();
+  if (!label||!addr) { toast('Add both a label and an address', { error:true }); return; }
+  if (!S.settings[key]) S.settings[key]=[];
+  S.settings[key].push({id:Date.now(),label,addr});
+  document.getElementById(pre+'-label').value='';
+  document.getElementById(pre+'-addr').value='';
   persist(); renderSettings(); renderRouteSelector();
+  toast(`${label} added`);
 }
-function removeHomeAddr(id) {
-  S.settings.homeAddrs=(S.settings.homeAddrs||[]).filter(h=>h.id!==id);
-  if (tripHome===id) tripHome=null;
-  persist(); renderSettings(); renderRouteSelector(); updatePreview();
-}
-function addClubAddr() {
-  const label=document.getElementById('ca-label').value.trim();
-  const addr=document.getElementById('ca-addr').value.trim();
-  if (!label||!addr) return;
-  if (!S.settings.clubAddrs) S.settings.clubAddrs=[];
-  S.settings.clubAddrs.push({id:Date.now(),label,addr});
-  document.getElementById('ca-label').value='';
-  document.getElementById('ca-addr').value='';
-  persist(); renderSettings(); renderRouteSelector();
-}
-function removeClubAddr(id) {
-  S.settings.clubAddrs=(S.settings.clubAddrs||[]).filter(c=>c.id!==id);
-  if (tripClub===id) tripClub=null;
-  persist(); renderSettings(); renderRouteSelector(); updatePreview();
-}
+function addHomeAddr() { addAltAddr('home'); }
+function addClubAddr() { addAltAddr('club'); }
 
-/* ── DELETE TRIP ── */
-function deleteTrip(id) {
-  const t=S.trips.find(t=>t.id===id);
-  if (!t||!confirm('Delete this trip and reverse its debts?')) return;
-  (t.passengers||[]).forEach(name=>{
-    if (S.debts[name]!==undefined) S.debts[name]=+((S.debts[name]-t.perPerson).toFixed(2));
+function editAltAddr(type, id) {
+  const key = type==='home' ? 'homeAddrs' : 'clubAddrs';
+  const a = (S.settings[key]||[]).find(x=>x.id===id);
+  if (!a) return;
+  formSheet({
+    title: type==='home' ? 'Edit starting point' : 'Edit destination',
+    fields: [{ label:'Label', value:a.label }, { label:'Address', value:a.addr }],
+    save: ([label, addr]) => {
+      if (!label || !addr) { toast('Add both a label and an address', { error:true }); return false; }
+      withUndo(`${label} saved`, () => { const x = S.settings[key].find(x=>x.id===id); x.label = label; x.addr = addr; });
+    },
+    remove: () => removeAltAddr(type, id)
   });
-  S.trips=S.trips.filter(t=>t.id!==id);
-  persist(); renderLog(); renderDebts();
 }
-
-/* ── DELETE PAYMENT ── */
-function deletePayment(id) {
-  const p=S.payments.find(p=>p.id===id);
-  if (!p||!confirm(`Delete this payment and add €${p.amt.toFixed(2)} back to ${p.name}'s balance?`)) return;
-  S.debts[p.name]=+(((S.debts[p.name]||0)+p.amt).toFixed(2));
-  S.payments=S.payments.filter(p=>p.id!==id);
-  persist(); renderLog(); renderDebts();
+function removeAltAddr(type, id) {
+  const key = type==='home' ? 'homeAddrs' : 'clubAddrs';
+  const a = S.settings[key].find(x=>x.id===id);
+  if (type==='home' && tripHome===id) tripHome=null;
+  if (type==='club' && tripClub===id) tripClub=null;
+  withUndo(`Removed ${a.label}`, () => { S.settings[key] = S.settings[key].filter(x=>x.id!==id); });
 }
+function removeHomeAddr(id) { removeAltAddr('home', id); }
+function removeClubAddr(id) { removeAltAddr('club', id); }
 
 /* ── BACKUP ──
    Everything lives in this browser's localStorage — one cleared Safari and
@@ -1639,6 +2313,7 @@ function exportBackup() {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   renderSettings();
+  toast('Backup saved — keep it somewhere safe');
 }
 
 function importBackup(input) {
@@ -1646,15 +2321,20 @@ function importBackup(input) {
   input.value = '';
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     let d;
-    try { d = JSON.parse(reader.result); } catch(e) { alert("That file isn't a carpool backup."); return; }
+    try { d = JSON.parse(reader.result); } catch(e) { toast("That file isn't a carpool backup", { error:true }); return; }
     if (d && d.data) d = d.data;
-    if (!d || !Array.isArray(d.members) || !Array.isArray(d.trips) || typeof d.debts !== 'object') {
-      alert("That file isn't a carpool backup."); return;
+    if (!d || !Array.isArray(d.members) || !Array.isArray(d.trips) || !d.debts || typeof d.debts !== 'object') {
+      toast("That file isn't a carpool backup", { error:true }); return;
     }
     const owed = Object.values(d.debts).filter(v=>v>0).reduce((s,v)=>s+v,0);
-    if (!confirm(`Replace everything in the app with this backup?\n\n${d.members.length} crew · ${d.trips.length} trips · €${owed.toFixed(2)} owed\n\nWhat's here now will be overwritten.`)) return;
+    const ok = await confirmSheet({
+      title: 'Restore this backup?',
+      body: `<b style="color:var(--text); font-weight:500;">${d.members.length} crew · ${d.trips.length} trips · €${owed.toFixed(2)} owed</b><br>Everything in the app right now gets replaced.`,
+      ok: 'Replace & restore', danger: true
+    });
+    if (!ok) return;
     localStorage.setItem('carpool_v4', JSON.stringify(d));
     location.reload();
   };
@@ -1672,25 +2352,21 @@ function renderBackupSub() {
     : `Last backup ${ago} (${fmtDate(last)}). Restore replaces everything with the file's contents.`;
 }
 
-/* ── DATA RESETS ── */
-function zeroDebts() {
-  if (!confirm('Set all debt balances to exactly €0.00?')) return;
-  Object.keys(S.debts).forEach(k=>S.debts[k]=0);
-  persist(); renderDebts();
+/* ── DATA RESETS ── confirm first, and still undoable for a few seconds */
+async function zeroDebts() {
+  if (!await confirmSheet({ title:'Zero out all debts?', body:'Every balance goes to €0.00. Trip and payment history stay as they are.', ok:'Zero out', danger:true })) return;
+  withUndo('All balances set to €0.00', () => Object.keys(S.debts).forEach(k=>S.debts[k]=0));
 }
-function clearTrips() {
-  if (!confirm('Delete all trip and payment history? Debt balances will not change.')) return;
-  S.trips=[];
-  S.payments=[];
-  persist(); renderLog();
+async function clearTrips() {
+  if (!await confirmSheet({ title:'Clear all history?', body:'Deletes every logged trip and payment. Balances in Debts don’t change.', ok:'Clear history', danger:true })) return;
+  withUndo('History cleared', () => { S.trips=[]; S.payments=[]; });
 }
-function forgetRoutes() {
+async function forgetRoutes() {
   const n = Object.keys(S.routeMemory||{}).length;
-  if (!n) return;
-  if (!confirm(`Forget ${n} learned route distance${n===1?'':'s'}? Kilometers will no longer fill themselves in.`)) return;
-  S.routeMemory={};
+  if (!n) { toast('Nothing learned yet'); return; }
+  if (!await confirmSheet({ title:`Forget ${n} learned distance${n===1?'':'s'}?`, body:'Kilometers stop filling themselves in until you log those routes again.', ok:'Forget', danger:true })) return;
   if (kmSource==='auto') { document.getElementById('km-input').value=''; kmSource=null; }
-  persist(); renderSettings(); renderTrip();
+  withUndo('Learned distances forgotten', () => { S.routeMemory={}; });
 }
 
 /* ── INIT ── */

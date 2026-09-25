@@ -38,7 +38,8 @@ S = {
     spared: string[],       // names of passengers who rode free
     dir: 'there'|'back',    // which leg (absent on trips logged before this existed)
     ts: number,             // epoch ms — hydrate() backfills it from `id` on old trips
-    setup: { crew: number[], overrides: tripOverrides, home, club }  // for "Same as last time"
+    setup: { crew: number[], overrides: tripOverrides, home, club }, // for "Same as last time"
+    rates: { fuelPerKm: number, surchPerKm: number }  // priced-at rates; tripRates() derives them for old trips
   }],
   payments: [{ id: number, ts: number, name: string, amt: number }],  // newest first
   debts: { [name: string]: number },  // positive = owes you, negative = credit
@@ -195,9 +196,18 @@ spared people = ride free, not counted in total_people
 | `logTrip()` | Saves one one-way trip, updates debts, learns the route km, resets session state |
 | `openPayModal(name)` | Opens debt payment modal for a crew member |
 | `persist()` / `hydrate()` | Save/load S to localStorage |
-| `renderLog()` / `renderStats()` | Log screen: stats card (month / all time) + trips and payments in one timeline |
+| `renderLog()` | Log screen: trips and payments in one timeline, grouped by month |
 | `deletePayment(id)` | Removes a payment and adds its amount back to the balance |
 | `exportBackup()` / `importBackup(input)` | Download S as JSON / replace S from a backup file and reload |
+| `toast()` / `withUndo()` | Feedback + undo for every data change |
+| `openSheet()` / `closeSheet()` / `confirmSheet()` / `formSheet()` | One generic bottom sheet for edit forms, confirms and the person view |
+| `toggleMember(id)` | Crew chip tap = in/out of the car; the chip's ⋯ opens `openChipModal()` |
+| `tripDate` / `renderDatePill()` / `onTripDate()` | Session-only: log a trip on a past day (skips Maps) |
+| `openPerson(name)` / `debtBreakdown(name)` | Debt detail: which rides make up the balance (payments settle oldest first) |
+| `sendRequest(name)` / `copyRequest(name)` | Payment reminder via share sheet → WhatsApp link fallback / clipboard |
+| `editTrip()` / `saveTripEdit()` / `editPayment()` / `editMember()` / `editPreset()` / `editAltAddr()` | Edit sheets — every list row in Log and Settings is tappable |
+| `renameEverywhere(from,to)` | Moves debts, trips and payments to a member's new name |
+| `renderStats()` / `renderWeekChart()` | Stats screen: week/month/all totals, 8-week stacked bar chart (crew paid vs your share), per-person |
 | `esc(s)` / `fmtDate(ts)` | Escape user text for innerHTML / format a timestamp (adds year if not this year) |
 
 ---
@@ -213,6 +223,10 @@ Stops are URL-encoded addresses. Members with `cameToMe` set (either mode) are e
 ## Things to keep in mind when editing
 - **Always `esc()` names, labels and addresses** before putting them in innerHTML. Never inline a name into an `onclick` string — use `data-name` + `this.dataset.name` (apostrophes broke the Debts screen before)
 - **Display dates from `ts`** via `fmtDate()`, not the legacy `date` string (it has no year)
+- **Changes to saved data go through `withUndo(msg, mutate)`** — it snapshots S, applies, saves, re-renders and shows an Undo toast. Bulk resets additionally ask via `confirmSheet()` first. No `alert()`/`confirm()` anywhere — use `toast(msg, {error:true})` and `confirmSheet()`
+- **Keep `S.trips` and `S.payments` sorted newest-first** (`sortHistory()`) — `debtBreakdown()` and "Same as last time" rely on it
+- **Editing a trip reprices it at its own `rates`**, never the current settings — `splitFor()` is the same formula as `calcSplit()`, keep them identical
+- The toast (`#toast-wrap`) is `position:fixed` like the nav and overlays — the only fixed elements
 - **localStorage key is `carpool_v4`** — if you change the state shape significantly, bump this to `carpool_v5` to avoid hydration errors from old saved data. Purely *additive* keys (like `routeMemory`) don't need a bump — `hydrate()` spreads over the defaults — and bumping would orphan the user's real debt balances, so don't do it lightly
 - **`calcSplit()` is the only place the split formula lives** — preview, pending banner and `logTrip()` all call it, so they can't drift apart
 - **SVG route viz** is built dynamically in `renderRouteViz()` — viewBox is `0 0 460 110`, nodes spaced evenly across the width with `pad=36`
