@@ -24,7 +24,7 @@
   --toast-bg:#001315; --toast-fg:#f0f7f8; --toast-accent:#7bd9df;
   --overlay:rgba(0,19,21,0.42);
   --shadow:0 10px 30px rgba(0,19,21,0.12); --shadow-sm:0 2px 10px rgba(0,19,21,0.05);
-  --map-bg:#e4eced; --map-road:#ffffff; --map-minor:#f3f7f7; --map-park:#d8e9dc; --map-water:#cfe4ec;
+  --map-bg:#e4eced; --map-road:#ffffff; --map-minor:#f3f7f7; --map-park:#d8e9dc; --map-water:#cfe4ec; --map-block:#d8e3e4;
   --chart-crew:var(--p); --chart-you:var(--p-mid);
   /* aliases for older render code */
   --border:var(--line); --border2:var(--av); --cyan:var(--p); --coral:var(--p);
@@ -42,7 +42,7 @@ html[data-theme="dark"] {
   --toast-bg:#e7f1f1; --toast-fg:#001315; --toast-accent:#07858b;
   --overlay:rgba(0,0,0,0.6);
   --shadow:0 10px 30px rgba(0,0,0,0.45); --shadow-sm:0 1px 0 rgba(255,255,255,0.03);
-  --map-bg:#0f1b1c; --map-road:#1d2c2d; --map-minor:#152223; --map-park:#11241a; --map-water:#0c2430;
+  --map-bg:#0f1b1c; --map-road:#1d2c2d; --map-minor:#152223; --map-park:#11241a; --map-water:#0c2430; --map-block:#152527;
   color-scheme:dark;
 }
 
@@ -121,9 +121,14 @@ input[type=date]::-webkit-date-and-time-value { text-align:left; }
 
 /* ── TRIP: map hero + floating cards ── */
 .trip-screen { padding-top:0; }
-.map-hero { position:relative; min-height:300px; margin:0 -16px; padding:calc(10px + env(safe-area-inset-top,0px)) 12px 150px; overflow:hidden; background:var(--map-bg); }
-/* The drawing is laid out for 300px; when the route card grows, the map grows above it, under the card. */
-.route-viz { position:absolute; left:0; right:0; bottom:0; height:300px; cursor:pointer; }
+.map-hero { position:relative; min-height:330px; margin:0 -16px; padding:calc(10px + env(safe-area-inset-top,0px)) 12px 176px; overflow:hidden; background:var(--map-bg); }
+/* The map keeps a fixed 330px; when the route card grows, the hero grows above it, under the card. */
+.route-viz { position:absolute; left:0; right:0; bottom:0; height:330px; cursor:pointer; }
+.route-viz .rd path { vector-effect:non-scaling-stroke; }
+.route-viz .flow { animation:routeFlow 1.1s linear infinite; }
+@keyframes routeFlow { to { stroke-dashoffset:-16; } }
+.route-viz .pin-new { animation:pinIn .38s cubic-bezier(0.34,1.56,0.64,1) both; transform-box:fill-box; transform-origin:center; }
+@keyframes pinIn { from { opacity:0; transform:scale(0.3); } to { opacity:1; transform:none; } }
 .route-viz svg { width:100%; height:100%; display:block; }
 .map-pill { position:absolute; bottom:58px; background:var(--card); color:var(--text); border-radius:100px; padding:7px 12px; font-size:12px; font-weight:700; box-shadow:var(--shadow-sm), 0 2px 8px rgba(0,19,21,0.1); display:flex; align-items:center; gap:6px; }
 .map-pill.km { left:14px; }
@@ -1319,54 +1324,211 @@ function resetTripDate() { tripDate = null; renderDatePill(); renderActions(); }
    There's no map API, so this draws a stylised street map: the stops climb
    from bottom-left (start) to top-right (end) and the route follows streets
    laid through them. Tapping it opens the real route in Google Maps. */
+/* ── ROUTE MAP ── a made-up town, generated from your addresses so it's the same
+   town every time. Everyone gets a fixed spot from their address, the route runs
+   along the streets, and the camera zooms out to fit whoever is in the car. */
+function hashStr(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function seededRandom(seed) {
+  return () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = (t + Math.imul(t ^ t >>> 7, 61 | t)) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+
+const MAP_COLS = 34, MAP_ROWS = 18, MAP_HOME = [6, 9];   // grid size, where "home" sits
+let mapTown = null;        // the generated town, cached per home+club address
+let vizCam = null;         // current camera { s, tx, ty } — tweened between renders
+let vizAnim = 0, vizPins = new Set();
+
+function buildTown() {
+  const key = (S.settings.homeAddr||'') + '|' + (S.settings.clubAddr||'');
+  if (mapTown && mapTown.key === key) return mapTown;
+  const r = seededRandom(hashStr(key || 'carpool'));
+  const xs = [0], ys = [0];
+  for (let i = 1; i < MAP_COLS; i++) xs.push(xs[i-1] + 54 + r()*34);
+  for (let j = 1; j < MAP_ROWS; j++) ys.push(ys[j-1] + 46 + r()*30);
+  // A gentle warp so streets bend instead of forming a perfect grid.
+  const wa = r()*6.28, wb = r()*6.28;
+  const N = xs.map((x, i) => ys.map((y, j) => ({
+    x: x + Math.sin(y/170 + wa)*16 + (r()-.5)*9,
+    y: y + Math.sin(x/220 + wb)*13 + (r()-.5)*9 })));
+  const P = p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+
+  // Blocks: most split into buildings, a few parks.
+  let blocks = '', parks = '';
+  const inset = (pts, k) => { const cx = pts.reduce((a,p)=>a+p.x,0)/pts.length, cy = pts.reduce((a,p)=>a+p.y,0)/pts.length;
+    return pts.map(p => ({ x:p.x+(cx-p.x)*k, y:p.y+(cy-p.y)*k })); };
+  const poly = pts => `<polygon points="${pts.map(P).join(' ')}"/>`;
+  const mid = (p, q, t=.5) => ({ x:p.x+(q.x-p.x)*t, y:p.y+(q.y-p.y)*t });
+  for (let i = 0; i < MAP_COLS-1; i++) for (let j = 0; j < MAP_ROWS-1; j++) {
+    const a = N[i][j], b = N[i+1][j], c = N[i+1][j+1], d = N[i][j+1], roll = r();
+    if (roll < 0.08) { parks += poly(inset([a,b,c,d], 0.12)); continue; }
+    if (roll < 0.14) continue;   // open square
+    if (r() < 0.55) {
+      const t = 0.35 + r()*0.3, m1 = mid(a,b,t), m2 = mid(d,c,t);
+      blocks += poly(inset([a,m1,m2,d], 0.26)) + poly(inset([m1,b,c,m2], 0.26));
+    } else blocks += poly(inset([a,b,c,d], 0.2));
+  }
+
+  // River through the lower half, drawn under the streets so they cross as bridges.
+  const rr = 12 + Math.floor(r()*3);
+  let river = '';
+  for (let i = 0; i < MAP_COLS; i++) {
+    const y = (N[i][rr].y + N[i][rr+1].y) / 2 + Math.sin(i*0.7 + wa)*10;
+    river += (i ? ' L' : 'M') + `${N[i][rr].x.toFixed(1)} ${y.toFixed(1)}`;
+  }
+
+  // Streets: every 4th row/column is a main road; some side streets are dead ends.
+  const mainR = 1 + Math.floor(r()*3), mainC = 1 + Math.floor(r()*3);
+  let main = '', side = '';
+  const run = (pts, isMain) => {
+    let d = '', open = false;
+    for (let k = 0; k < pts.length-1; k++) {
+      if (!isMain && r() < 0.12) { open = false; continue; }
+      d += (open ? ' L' : ' M' + P(pts[k]) + ' L') + P(pts[k+1]);
+      open = true;
+    }
+    if (isMain) main += `<path d="${d}"/>`; else side += `<path d="${d}"/>`;
+  };
+  for (let j = 0; j < MAP_ROWS; j++) run(N.map(col => col[j]), j % 4 === mainR);
+  for (let i = 0; i < MAP_COLS; i++) run(N[i], i % 4 === mainC);
+  // One curving avenue across town.
+  const s0 = N[0][2 + Math.floor(r()*4)], s1 = N[MAP_COLS-1][MAP_ROWS - 3 - Math.floor(r()*4)];
+  main += `<path d="M${P(s0)} C${P(N[12][3])} ${P(N[20][MAP_ROWS-4])} ${P(s1)}"/>`;
+
+  const W = xs[MAP_COLS-1] + 40, H = ys[MAP_ROWS-1] + 40;
+  const svg = `<rect x="-400" y="-400" width="${W+800}" height="${H+800}" style="fill:var(--map-bg)"/>
+    <g style="fill:var(--map-block);stroke:var(--map-block)" stroke-width="3" stroke-linejoin="round">${blocks}</g>
+    <g style="fill:var(--map-park);stroke:var(--map-park)" stroke-width="3" stroke-linejoin="round">${parks}</g>
+    <path d="${river}" style="stroke:var(--map-water)" stroke-width="34" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <g class="rd" style="stroke:var(--map-road)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <g stroke-width="4.5">${side}</g><g stroke-width="8">${main}</g>
+    </g>`;
+  return (mapTown = { key, N, svg });
+}
+
+// A place's grid spot, from its address — the same address always lands in the same spot.
+function townSpot(addr, near, taken) {
+  const h = hashStr((addr||'').toLowerCase().trim());
+  let i = near[0] + (h % near[2]), j = near[1] + ((h >>> 8) % near[3]);
+  const clampI = v => Math.max(1, Math.min(MAP_COLS-2, v)), clampJ = v => Math.max(1, Math.min(MAP_ROWS-2, v));
+  i = clampI(i); j = clampJ(j);
+  for (let k = 0; taken.has(i+','+j) && k < 40; k++) { i = clampI(i + (k%2 ? -k : k)); if (k % 5 === 4) j = clampJ(j+1); }
+  taken.add(i+','+j);
+  return [i, j];
+}
+
 function renderRouteViz(km) {
   const viz = document.getElementById('route-viz');
+  const town = buildTown(), N = town.N;
   const pickups = [];
   [...checkedIds].forEach(id => {
     const m = S.members.find(m=>m.id===id);
     if (!m || (tripOverrides[id]||{}).cameToMe) return;
-    pickups.push(m);
+    pickups.push({ m, addr: (tripOverrides[id]||{}).addr || m.addr || m.name });
   });
+
+  // Home and hall are anchored; alternative starts and pickups spread around the corridor between them.
+  const taken = new Set();
+  const home = activeTripHome() === S.settings.homeAddr ? MAP_HOME.slice()
+    : townSpot(activeTripHome(), [MAP_HOME[0]-3, MAP_HOME[1]-3, 5, 6], taken);
+  taken.add(home.join(','));
+  const club = townSpot(activeTripClub() || 'club', [MAP_HOME[0] + 4 + 2*pickups.length, MAP_HOME[1]-1, 2, 3], taken);
+  // Pickups spread along the way in pickup order, each nudged by its own address.
   const back = tripDirection === 'back';
   if (back) pickups.reverse();
-  const stops = [{ type: back ? 'club' : 'home' }, ...pickups.map(m => ({ type:'pickup', label:ini(m.name) })), { type: back ? 'home' : 'club' }];
-
-  const W = 400, H = 300, n = stops.length;
-  const x0 = 58, x1 = W - 58, yTop = 100, yBot = H - 104;   // yBot clears the km pill
-  stops.forEach((st, i) => {
-    const t = i / (n - 1);
-    st.x = Math.round(x0 + (x1 - x0) * t);
-    st.y = Math.round(yBot - (yBot - yTop) * t + (i % 2 && i < n - 1 ? 14 : 0));
+  const [a0, b0] = back ? [club, home] : [home, club];
+  const spots = pickups.map((p, k) => {
+    const t = (k + 1) / (pickups.length + 1);
+    const ci = Math.round(a0[0] + (b0[0]-a0[0])*t), cj = Math.round(a0[1] + (b0[1]-a0[1])*t);
+    return { key:'p'+p.m.id, type:'pickup', label:ini(p.m.name), ij: townSpot(p.addr, [ci, cj-2, 1, 5], taken) };
   });
-  let route = `M${stops[0].x} ${stops[0].y}`;
-  for (let i = 1; i < n; i++) route += ` H${stops[i].x} V${stops[i].y}`;
+  const stops = [
+    { key: back ? 'club' : 'home', type: back ? 'club' : 'home', ij: back ? club : home },
+    ...spots,
+    { key: back ? 'home' : 'club', type: back ? 'home' : 'club', ij: back ? home : club }];
 
-  const hs = [...new Set([34, 160, 262, ...stops.map(st => st.y)])];
-  const vs = [...new Set([22, 150, 262, 384, ...stops.map(st => st.x)])];
-  const roads = hs.map(y => `<path d="M-10 ${y} H${W+10}"/>`).join('') + vs.map(x => `<path d="M${x} -10 V${H+10}"/>`).join('');
-  const minor = [70, 128, 205].map(y => `<path d="M-10 ${y} H${W+10}"/>`).join('') + [88, 205, 330].map(x => `<path d="M${x} -10 V${H+10}"/>`).join('');
+  // Route along the streets: along a row, then down a column, alternating per leg.
+  const pts = [];
+  const push = (i, j) => { const q = N[i][j], l = pts[pts.length-1]; if (!l || l.x !== q.x || l.y !== q.y) pts.push(q); };
+  stops.forEach((st, k) => {
+    if (!k) { push(...st.ij); return; }
+    const [i0, j0] = stops[k-1].ij, [i1, j1] = st.ij, rowFirst = k % 2 === 1;
+    const walkI = (from, to, j) => { for (let i = from; i !== to; i += Math.sign(to-from)) push(i + Math.sign(to-from), j); };
+    const walkJ = (from, to, i) => { for (let j = from; j !== to; j += Math.sign(to-from)) push(i, j + Math.sign(to-from)); };
+    if (rowFirst) { walkI(i0, i1, j0); walkJ(j0, j1, i1); } else { walkJ(j0, j1, i0); walkI(i0, i1, j1); }
+  });
+  stops.forEach(st => { st.p = N[st.ij[0]][st.ij[1]]; });
 
-  const pin = st => {
-    if (st.type === 'home') return `<circle cx="${st.x}" cy="${st.y}" r="10" style="fill:var(--p)" stroke="#fff" stroke-width="3.5"/>`;
-    if (st.type === 'club') return `<rect x="${st.x-10}" y="${st.y-10}" width="20" height="20" rx="6" style="fill:var(--text)" stroke="#fff" stroke-width="3"/>`;
-    return `<circle cx="${st.x}" cy="${st.y}" r="13" style="fill:var(--card);stroke:var(--p)" stroke-width="3"/>
-      <text x="${st.x}" y="${st.y+3.6}" text-anchor="middle" font-size="10" font-weight="800" font-family="Onest,sans-serif" style="fill:var(--text)">${st.label}</text>`;
+  // Camera: fit the route into the strip between the route card and the trip card,
+  // with a floor that grows per pickup so every extra person zooms out a bit more.
+  const Wv = viz.clientWidth || 390, Hv = viz.clientHeight || 330;
+  const card = document.querySelector('.route-card');
+  const vr = viz.getBoundingClientRect(), cr = card ? card.getBoundingClientRect() : null;
+  const top = cr && vr.height ? Math.max(0, cr.bottom - vr.top) + 22 : 124;
+  const bot = Hv - 96;
+  const xsP = pts.map(p=>p.x), ysP = pts.map(p=>p.y);
+  const bx0 = Math.min(...xsP), bx1 = Math.max(...xsP), by0 = Math.min(...ysP), by1 = Math.max(...ysP);
+  const floorW = 330;
+  const s = Math.min((Wv - 70) / Math.max(bx1-bx0, floorW), Math.max(40, bot-top) / Math.max(by1-by0, floorW*0.3));
+  const target = { s, tx: Wv/2 - s*(bx0+bx1)/2, ty: (top+bot)/2 - s*(by0+by1)/2 };
+
+  // The town is drawn once; the route and pins live in screen space so they stay crisp at any zoom.
+  if (viz.dataset.town !== town.key) {
+    viz.innerHTML = `<svg viewBox="0 0 ${Wv} ${Hv}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g id="viz-town">${town.svg}</g><g id="viz-route"></g></svg><div id="viz-pills"></div>`;
+    viz.dataset.town = town.key; vizCam = null; vizPins = new Set();
+  }
+  viz.querySelector('svg').setAttribute('viewBox', `0 0 ${Wv} ${Hv}`);
+
+  const pin = (st, fresh) => {
+    const cls = fresh ? ' class="pin-new"' : '';
+    if (st.type === 'home') return `<g${cls}><circle r="17" style="fill:var(--p)" opacity=".16"/><circle r="9" style="fill:var(--p)" stroke="#fff" stroke-width="3.5"/></g>`;
+    if (st.type === 'club') return `<g${cls}><rect x="-10" y="-10" width="20" height="20" rx="6" style="fill:var(--text)" stroke="#fff" stroke-width="3"/></g>`;
+    return `<g${cls}><circle r="13" style="fill:var(--card);stroke:var(--p)" stroke-width="3"/>
+      <text y="3.6" text-anchor="middle" font-size="10" font-weight="800" font-family="Onest,sans-serif" style="fill:var(--text)">${st.label}</text></g>`;
   };
+  // The route layer is built once per render; animation frames only move it.
+  const layer = viz.querySelector('#viz-route');
+  layer.innerHTML = `
+    <path style="stroke:var(--card)" stroke-width="10" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+    <path style="stroke:var(--p)" stroke-width="5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+    <path class="flow" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="0.1 15.9" fill="none" stroke-linecap="round"/>
+    ${stops.map(st => `<g>${pin(st, !vizPins.has(st.key))}</g>`).join('')}`;
+  vizPins = new Set(stops.map(st => st.key));
+  const paths = layer.querySelectorAll('path'), pinEls = [...layer.children].slice(3);
+  const townEl = viz.querySelector('#viz-town');
+
+  const draw = cam => {
+    const X = p => (cam.s*p.x + cam.tx).toFixed(1), Y = p => (cam.s*p.y + cam.ty).toFixed(1);
+    const d = pts.map((p, k) => (k ? 'L' : 'M') + X(p) + ' ' + Y(p)).join(' ');
+    townEl.setAttribute('transform', `matrix(${cam.s} 0 0 ${cam.s} ${cam.tx} ${cam.ty})`);
+    paths.forEach(el => el.setAttribute('d', d));
+    pinEls.forEach((el, k) => el.setAttribute('transform', `translate(${X(stops[k].p)} ${Y(stops[k].p)})`));
+  };
+
+  cancelAnimationFrame(vizAnim);
+  const from = vizCam, same = from && Math.abs(from.s-target.s) < 1e-4 && Math.abs(from.tx-target.tx) < .5 && Math.abs(from.ty-target.ty) < .5;
+  if (!from || same || matchMedia('(prefers-reduced-motion: reduce)').matches) { vizCam = target; draw(target); }
+  else {
+    const t0 = performance.now(), dur = 520;
+    const step = now => {
+      const t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 3);
+      // Zoom in log space so zooming out and in feel equally smooth.
+      vizCam = { s: Math.exp(Math.log(from.s) + (Math.log(target.s) - Math.log(from.s))*e),
+                 tx: from.tx + (target.tx - from.tx)*e, ty: from.ty + (target.ty - from.ty)*e };
+      draw(vizCam);
+      if (t < 1) vizAnim = requestAnimationFrame(step);
+    };
+    draw(from); vizAnim = requestAnimationFrame(step);
+  }
+
   const canMap = !!(activeTripHome() && activeTripClub());
-  viz.innerHTML = `
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <rect width="${W}" height="${H}" style="fill:var(--map-bg)"/>
-      <path d="M-20 ${H-40} C90 ${H-70} 170 ${H-10} ${W+20} ${H-55}" style="stroke:var(--map-water)" stroke-width="26" fill="none"/>
-      <rect x="276" y="46" width="94" height="94" rx="14" style="fill:var(--map-park)"/>
-      <rect x="30" y="178" width="72" height="54" rx="12" style="fill:var(--map-park)"/>
-      <g style="stroke:var(--map-minor)" stroke-width="5" fill="none">${minor}</g>
-      <g style="stroke:var(--map-road)" stroke-width="10" fill="none" stroke-linecap="round">${roads}</g>
-      <path d="${route}" style="stroke:var(--card)" stroke-width="10" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
-      <path d="${route}" style="stroke:var(--p)" stroke-width="5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
-      ${stops.map(pin).join('')}
-    </svg>
-    ${km ? `<span class="map-pill km">${km} km</span>` : ''}
-    <span class="map-pill open">${canMap ? 'Open in Maps ↗' : 'Add addresses in Settings'}</span>`;
+  viz.querySelector('#viz-pills').innerHTML =
+    (km ? `<span class="map-pill km">${km} km</span>` : '') +
+    `<span class="map-pill open">${canMap ? 'Open in Maps ↗' : 'Add addresses in Settings'}</span>`;
 }
 
 function shortAddr(addr) {

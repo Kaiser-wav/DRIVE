@@ -205,7 +205,7 @@ spared people = ride free, not counted in total_people
 | `armPendingDrive()` / `restorePendingDrive()` / `renderPending()` | The open-Maps-then-log-on-return flow |
 | `repeatLastTrip()` | Restores the crew + km of the most recent trip in one tap |
 | `setupReturn()` / `dismissReturn()` / `renderReturnPrompt()` | The offer to set up the way back as its own trip |
-| `renderRouteViz(km)` | Draws the SVG path from home → pickups → club |
+| `renderRouteViz(km)` | Draws the generated town map + route home → pickups → club, zooming to fit |
 | `openChipModal(id)` | Opens per-person config modal |
 | `setCameToMe(mode)` | Sets spare/pays state in chipModalTemp |
 | `closeChipModal(confirm)` | Writes chipModalTemp to tripOverrides if confirmed |
@@ -245,7 +245,7 @@ Stops are URL-encoded addresses. Members with `cameToMe` set (either mode) are e
 - The floating nav, the toast (`#toast-wrap`) and the overlays are `position:fixed` — nothing else is
 - **localStorage key is `carpool_v4`** — if you change the state shape significantly, bump this to `carpool_v5` to avoid hydration errors from old saved data. Purely *additive* keys (like `routeMemory`) don't need a bump — `hydrate()` spreads over the defaults — and bumping would orphan the user's real debt balances, so don't do it lightly
 - **`calcSplit()` is the only place the split formula lives** — preview, pending banner and `logTrip()` all call it, so they can't drift apart
-- **SVG route viz** is built dynamically in `renderRouteViz()` — viewBox is `0 0 460 110`, nodes spaced evenly across the width with `pad=36`
+- **Route map** (`renderRouteViz()`): `buildTown()` generates a made-up town (warped street grid, blocks, parks, river, one avenue) seeded from home+hall address and cached in `mapTown`. Home is anchored at `MAP_HOME`; the hall sits `4 + 2×pickups` columns away, so every pickup lengthens the route and the camera zooms out. Pickups spread along the way in pickup order, nudged by `townSpot()` (hash of their address). The town is one `<g>` moved by a camera matrix (`vizCam`, tweened in log space); the route and pins are drawn in screen space so they stay crisp. Road strokes use `vector-effect:non-scaling-stroke`. Map colors: `--map-bg/-road/-block/-park/-water`.
 - **Avoid new `position:fixed`** — only the nav, toast and overlays use it; the app runs as a local file / mobile browser page where extra fixed layers misbehave
 - **Single file constraint** — keep everything in one HTML file; don't split into separate CSS/JS files unless the user explicitly asks to set up a proper project
 
