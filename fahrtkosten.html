@@ -308,6 +308,12 @@ hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
 .cover-cap { font-size:12px; color:var(--muted2); margin-top:8px; }
 
 .debt-info { flex:1; min-width:0; }
+
+/* Demo mode strip */
+.demo-bar { display:none; align-items:center; gap:10px; max-width:500px; margin:0 auto; padding:10px 16px; font-size:12px; color:var(--amber); background:var(--amber-bg); border-bottom:1px solid var(--amber-bd); }
+.demo-bar.on { display:flex; }
+.demo-bar span { flex:1; line-height:1.4; }
+.demo-bar button { background:none; border:none; color:var(--amber); font-family:'Instrument Sans',sans-serif; font-size:12px; font-weight:600; cursor:pointer; padding:4px 2px; text-decoration:underline; text-underline-offset:3px; }
 .debt-sub { font-size:12px; color:var(--muted); margin-top:2px; }
 
 /* Weekly chart */
@@ -421,6 +427,11 @@ html.theme-anim .preview {
 </style>
 </head>
 <body>
+<div class="demo-bar" id="demo-bar">
+  <span>Demo data — your real data isn't touched</span>
+  <button onclick="resetDemo()">Reset</button>
+  <button onclick="location.href=location.pathname">Exit</button>
+</div>
 
 <!-- TRIP -->
 <div id="s-trip" class="screen active">
@@ -601,7 +612,9 @@ html.theme-anim .preview {
     <button class="btn danger full" onclick="clearTrips()" style="width:100%; text-align:left; padding:12px 14px;">Clear history</button>
     <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;">Remove all logged trips and payments. Does not touch debt balances.</div>
     <button class="btn danger full" id="forget-routes-btn" onclick="forgetRoutes()" style="width:100%; text-align:left; padding:12px 14px;">Forget learned distances</button>
-    <div style="font-size:12px; color:var(--muted); margin: 6px 0 0 2px;" id="forget-routes-sub">The app remembers the km of every route you log and fills it in automatically next time.</div>
+    <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;" id="forget-routes-sub">The app remembers the km of every route you log and fills it in automatically next time.</div>
+    <button class="btn full" onclick="location.href=location.pathname+'?demo'" style="width:100%; text-align:left; padding:12px 14px;">Try the app with demo data</button>
+    <div style="font-size:12px; color:var(--muted); margin: 6px 0 0 2px;">Opens a separate sandbox with 10 weeks of made-up trips. Your real data stays untouched.</div>
   </div>
 </div>
 
@@ -697,9 +710,14 @@ let editDraft = null;     // trip being edited in the trip sheet
 
 const PENDING_MAX_AGE = 12*60*60*1000;  // an armed drive older than this is dropped
 
-function persist() { localStorage.setItem('carpool_v4', JSON.stringify(S)); }
+// ?demo in the URL switches to a separate sandbox key filled with made-up data.
+const DEMO = new URLSearchParams(location.search).has('demo');
+const STORE_KEY = DEMO ? 'carpool_demo' : 'carpool_v4';
+
+function persist() { localStorage.setItem(STORE_KEY, JSON.stringify(S)); }
 function hydrate() {
-  const r = localStorage.getItem('carpool_v4');
+  if (DEMO && !localStorage.getItem(STORE_KEY)) { S = demoData(); learnDemoRoutes(); persist(); }
+  const r = localStorage.getItem(STORE_KEY);
   if (r) try { const d=JSON.parse(r); S={...S,...d}; S.settings={...S.settings,...(d.settings||{})}; } catch(e){}
   if (!S.routeMemory) S.routeMemory = {};
   if (!S.payments) S.payments = [];
@@ -2335,7 +2353,7 @@ function importBackup(input) {
       ok: 'Replace & restore', danger: true
     });
     if (!ok) return;
-    localStorage.setItem('carpool_v4', JSON.stringify(d));
+    localStorage.setItem(STORE_KEY, JSON.stringify(d));
     location.reload();
   };
   reader.readAsText(file);
@@ -2369,7 +2387,87 @@ async function forgetRoutes() {
   withUndo('Learned distances forgotten', () => { S.routeMemory={}; });
 }
 
+/* ── DEMO DATA ──
+   10 weeks of Tuesday/Thursday practice, there and back, with a changing
+   crew, the odd free ride and people paying back in round amounts. Seeded,
+   so every reset produces the same data (relative to today). */
+function demoData() {
+  let seed = 7;
+  const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+  const pick = arr => arr[Math.floor(rnd()*arr.length)];
+  const members = [
+    { id:101, name:'Felix',  addr:'Dudweilerstr. 44, Saarbrücken' },
+    { id:102, name:'Max',    addr:'Mainzer Str. 81, Saarbrücken' },
+    { id:103, name:'Lea',    addr:'Nauwieser Str. 9, Saarbrücken' },
+    { id:104, name:'Jonas',  addr:'Großherzog-Friedrich-Str. 30, Saarbrücken' },
+    { id:105, name:'Sophie', addr:'Bismarckstr. 112, Saarbrücken' }
+  ];
+  const settings = { homeAddr:'Hohenzollernstr. 15, Saarbrücken', clubAddr:'Sporthalle Rastbachtal, Saarbrücken',
+    consumption:6.8, gasPrice:1.84, surcharge:0.02, theme:(S.settings.theme||'dark'),
+    homeAddrs:[{ id:201, label:"Parents' place", addr:'Am Staden 3, Saarbrücken' }],
+    clubAddrs:[{ id:301, label:'Away hall', addr:'Saarlandhalle, Saarbrücken' }] };
+  const rates = { fuelPerKm: settings.consumption*settings.gasPrice/100, surchPerKm: settings.surcharge };
+  const trips = [], payments = [], debts = {};
+  members.forEach(m => debts[m.name] = 0);
+  let id = 1;
+  const addTrip = (ts, dir, crew, spareIds, away) => {
+    const paying = crew.filter(i => !spareIds.includes(i)).map(i => members.find(m=>m.id===i).name);
+    const spared = spareIds.map(i => members.find(m=>m.id===i).name);
+    const km = +((away ? 27 : 12) + 2.8*(crew.length - spareIds.length) + rnd()*1.5).toFixed(1);
+    const fuel = km*rates.fuelPerKm;
+    const per = +(fuel/(paying.length+1) + (paying.length ? rates.surchPerKm*km/paying.length : 0)).toFixed(2);
+    const overrides = {}; spareIds.forEach(i => overrides[i] = { addr:null, cameToMe:'spare' });
+    trips.push({ id:id++, ts, date:fmtDate(ts), km, totalCost:+fuel.toFixed(2), perPerson:per, passengers:paying, spared, dir, rates,
+      setup:{ crew, overrides, home:null, club: away ? 301 : null } });
+    paying.forEach(n => debts[n] = +(debts[n]+per).toFixed(2));
+  };
+  const today = new Date(); today.setHours(0,0,0,0);
+  for (let d = 70; d >= 0; d--) {
+    const day = new Date(today); day.setDate(day.getDate()-d);
+    if (![2,4].includes(day.getDay())) continue;           // Tue + Thu
+    if (rnd() < 0.08) continue;                              // practice cancelled
+    const at = h => { const x = new Date(day); x.setHours(h, Math.floor(rnd()*20)); return x.getTime(); };
+    if (at(19) > Date.now()) continue;
+    const away = rnd() < 0.12;
+    const crew = members.filter(() => rnd() < 0.62).map(m => m.id);
+    if (!crew.length) crew.push(pick(members).id);
+    const spare = rnd() < 0.2 ? [pick(crew)] : [];
+    addTrip(at(18), 'there', crew, spare, away);
+    // the way back: usually the same crew, sometimes someone gets picked up
+    const back = crew.filter(() => rnd() > 0.15);
+    if (back.length && at(21) < Date.now()) addTrip(at(21), 'back', back, spare.filter(i => back.includes(i)), away);
+  }
+  // Paying back: every couple of weeks, round amounts, some people lag behind.
+  const lazy = { Jonas:0.35, Sophie:0.6 };
+  for (let d = 63; d >= 3; d -= 7) {
+    const cut = today.getTime() - d*86400000;
+    members.forEach(m => {
+      if (rnd() > (lazy[m.name] || 0.75)) return;
+      const owed = trips.filter(t => t.ts < cut && t.passengers.includes(m.name)).reduce((s,t)=>s+t.perPerson,0)
+                 - payments.filter(p => p.name===m.name).reduce((s,p)=>s+p.amt,0);
+      if (owed < 4) return;
+      const amt = Math.max(5, Math.floor(owed/5)*5);
+      const ts = cut + Math.floor(rnd()*2*86400000);
+      payments.push({ id:id++, ts, name:m.name, amt });
+      debts[m.name] = +(debts[m.name]-amt).toFixed(2);
+    });
+  }
+  trips.sort((a,b)=>b.ts-a.ts); payments.sort((a,b)=>b.ts-a.ts);
+  return { members, trips, payments, debts, settings, routeMemory:{}, pendingDrive:null,
+    presets:[{ id:401, name:'Straight to the hall', km:12.4 }, { id:402, name:'Away hall', km:27 }] };
+}
+// Learn the demo routes the same way logging does — needs the demo data live in S.
+function learnDemoRoutes() {
+  S.trips.slice().reverse().forEach(t => {
+    const sig = routeSignature(t.setup.crew, t.setup.overrides, homeAddrFor(t.setup.home), clubAddrFor(t.setup.club));
+    const prev = S.routeMemory[sig] || { n:0 };
+    S.routeMemory[sig] = { km:t.km, n:prev.n+1, ts:t.ts };
+  });
+}
+function resetDemo() { localStorage.removeItem('carpool_demo'); location.reload(); }
+
 /* ── INIT ── */
+if (DEMO) document.getElementById('demo-bar').classList.add('on');
 hydrate(); restorePendingDrive(); renderTrip(); renderSettings();
 </script>
 </body>
