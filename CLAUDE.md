@@ -16,7 +16,7 @@ A single-file HTML app for splitting driving costs between a regular crew (volle
 
 ## Tech stack
 - Pure HTML + CSS + vanilla JS — no frameworks, no npm, no bundler
-- Google Fonts loaded via CDN: Fraunces (display) + Instrument Sans (body)
+- Google Fonts loaded via CDN: Onest (everything)
 - `localStorage` key: `carpool_v4` — all state persists here
 - No external API calls — everything runs client-side
 
@@ -167,11 +167,16 @@ spared people = ride free, not counted in total_people
 ---
 
 ## Design system
-- **Colors**: dark warm bg `#1a1612`, coral accent `#e8674a`, cyan `#4ecdc4`, green `#7bc67a`, amber `#e8b96a`
-- **Fonts**: Fraunces (italic, light 300) for big numbers and titles — Instrument Sans for all UI text
-- **Chip states**: coral = normal passenger, amber = spared (free), cyan = came-to-me but pays, default = not selected
-- **No gradients, no shadows** — flat surfaces only
-- All colors defined as CSS variables in `:root` — always use vars, never hardcode hex in new code
+**"Cobalt" in teal** — an Uber/Bolt-style ride app: map first, controls on floating very round white cards, one accent color.
+
+- **Accent**: `--p #07858B` (OKLCH hue 201) with tints `--p-soft #D4F6F8` and `--p-mid #7BD9DF`; ink `--text #001315`; page `--bg #F0F7F8`; cards white. Free rides use `--free`/`--amber` (orange). No green as an accent — `--green` is only for money coming in.
+- **Dark mode** redefines the same tokens under `html[data-theme="dark"]` (text on the accent flips to ink via `--on-p`). The app is light-first: `hydrate()` moves everyone to light once (`settings.design = 'cobalt'`), the Settings toggle still switches.
+- **Font**: Onest only — 800 for money and titles, 500–700 for UI.
+- **Shapes**: cards 22–26px radius, pills/avatars fully round, soft shadows (`--shadow`, `--shadow-sm`). No gradients except the hue-free map drawing.
+- **Trip screen**: `.map-hero` (stylised street map from `renderRouteViz()`) with a floating `.route-card`, then `.main-card` overlapping it: crew pills with avatars → distance → price → **slide to drive** (`#slide`, `initSlide()`, `slideDone()`). Sliding, not tapping, is the primary action — no accidental logs.
+- **Nav**: floating dark capsule of 5 icon buttons (`nav`, fixed), active = accent circle.
+- **Chip states**: accent outline = paying passenger, orange = free ride, dashed accent = came to you but pays, grey = not in the car.
+- All colors are CSS variables in `:root` — never hardcode hex in new code. Old names (`--muted`, `--amber`, `--border`, `--cyan`, `--coral`) are kept as aliases.
 
 ---
 
@@ -226,11 +231,11 @@ Stops are URL-encoded addresses. Members with `cameToMe` set (either mode) are e
 - **Changes to saved data go through `withUndo(msg, mutate)`** — it snapshots S, applies, saves, re-renders and shows an Undo toast. Bulk resets additionally ask via `confirmSheet()` first. No `alert()`/`confirm()` anywhere — use `toast(msg, {error:true})` and `confirmSheet()`
 - **Keep `S.trips` and `S.payments` sorted newest-first** (`sortHistory()`) — `debtBreakdown()` and "Same as last time" rely on it
 - **Editing a trip reprices it at its own `rates`**, never the current settings — `splitFor()` is the same formula as `calcSplit()`, keep them identical
-- The toast (`#toast-wrap`) is `position:fixed` like the nav and overlays — the only fixed elements
+- The floating nav, the toast (`#toast-wrap`) and the overlays are `position:fixed` — nothing else is
 - **localStorage key is `carpool_v4`** — if you change the state shape significantly, bump this to `carpool_v5` to avoid hydration errors from old saved data. Purely *additive* keys (like `routeMemory`) don't need a bump — `hydrate()` spreads over the defaults — and bumping would orphan the user's real debt balances, so don't do it lightly
 - **`calcSplit()` is the only place the split formula lives** — preview, pending banner and `logTrip()` all call it, so they can't drift apart
 - **SVG route viz** is built dynamically in `renderRouteViz()` — viewBox is `0 0 460 110`, nodes spaced evenly across the width with `pad=36`
-- **No `position:fixed`** anywhere — the app is designed to be saved as a local file and opened in a mobile browser; fixed positioning causes issues in some mobile browsers
+- **Avoid new `position:fixed`** — only the nav, toast and overlays use it; the app runs as a local file / mobile browser page where extra fixed layers misbehave
 - **Single file constraint** — keep everything in one HTML file; don't split into separate CSS/JS files unless the user explicitly asks to set up a proper project
 
 ---
