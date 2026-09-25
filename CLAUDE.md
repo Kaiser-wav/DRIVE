@@ -104,6 +104,11 @@ writes its km to `S.routeMemory` under a signature built by `routeSignature()`:
 for trips without `setup`) and adds only routes memory doesn't know yet. `hydrate()` runs it once
 (`settings.routesFromHistory`); Settings → "Learn distances from history" (`relearnRoutes()`) runs it again.
 
+Settings → **Learned distances** lists every entry (`renderRoutesList()`); `describeRoute(sig)` turns a
+signature back into member names and place labels. `openRouteSheet(sig?)` adds or edits one — pick the
+people/start/destination, type the km — so a route can be ready before it's ever driven. Entries added
+by hand have `n: 0` (hint reads "Filled in from your saved route").
+
 `applyAutoKm()` fills the km field from memory, but only while `kmSource` is `null` or
 `'auto'` — a number the user typed (`'manual'`) or picked from a preset (`'preset'`) is
 never overwritten. `kmSource` is module-level session state.
@@ -201,6 +206,7 @@ spared people = ride free, not counted in total_people
 | `calcSplit(km)` | **Single source of truth for the split math** — used by preview, banner and `logTrip()` |
 | `routeSignature()` / `rememberRoute(km)` | Build the route key / store the learned km |
 | `learnRoutesFromHistory()` / `relearnRoutes()` | Backfill route memory from logged trips (once on load / from Settings) |
+| `renderRoutesList()` / `openRouteSheet()` / `saveRoute()` / `deleteRoute()` | Learned distances in Settings: view, add, edit, delete |
 | `applyAutoKm()` / `renderKmHint()` | Auto-fill km from memory / explain where the number came from |
 | `armPendingDrive()` / `restorePendingDrive()` / `renderPending()` | The open-Maps-then-log-on-return flow |
 | `repeatLastTrip()` | Restores the crew + km of the most recent trip in one tap |

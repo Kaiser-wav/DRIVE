@@ -302,6 +302,7 @@ input[type=date]::-webkit-date-and-time-value { text-align:left; }
 .srow .t b.missing { color:var(--p); }
 .srow .t small { display:block; font-size:12px; color:var(--muted); margin-top:2px; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .srow .tag { font-size:10.5px; font-weight:700; color:var(--muted); background:var(--field); padding:3px 8px; border-radius:100px; flex-shrink:0; }
+.srow .km { font-size:15px; font-weight:800; letter-spacing:-0.01em; flex-shrink:0; }
 .set-empty { font-size:13px; color:var(--muted); line-height:1.5; padding:2px 0 14px; }
 .vrow { display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid var(--line); }
 .vrow:first-child { border-top:none; padding-top:0; }
@@ -546,6 +547,12 @@ html.theme-anim body, html.theme-anim .card, html.theme-anim .fcard, html.theme-
     <div class="vrow"><label for="s-gas">Fuel price<small>What you pay at the pump</small></label><div class="vfield"><input type="number" id="s-gas" step="0.01" min="0.5" inputmode="decimal" oninput="onVehicle('gasPrice',this.value)" /><span>€/L</span></div></div>
     <div class="vrow"><label for="s-surch">Driver surcharge<small>Optional, only passengers pay it</small></label><div class="vfield"><input type="number" id="s-surch" step="0.01" min="0" inputmode="decimal" oninput="onVehicle('surcharge',this.value)" /><span>€/km</span></div></div>
     <div class="veh-example" id="veh-example"></div>
+  </div>
+
+  <div class="label">Learned distances</div>
+  <div class="card">
+    <div id="routes-list"></div>
+    <button class="addrow" onclick="openRouteSheet()"><span>+</span>Add a route</button>
   </div>
 
   <div class="label">Distance presets</div>
@@ -1149,7 +1156,9 @@ function renderKmHint() {
   if (mem && kmSource === 'auto') {
     el.className = 'km-hint';
     el.style.display = 'block';
-    el.textContent = `↻ Auto-filled from ${mem.n} previous trip${mem.n===1?'':'s'} on this route — type over it to correct`;
+    el.textContent = mem.n
+      ? `↻ Auto-filled from ${mem.n} previous trip${mem.n===1?'':'s'} on this route — type over it to correct`
+      : `↻ Filled in from your saved route — type over it to correct`;
   } else if (mem && km > 0 && Math.abs(mem.km - km) > 0.01) {
     el.className = 'km-hint dim';
     el.style.display = 'block';
@@ -2407,6 +2416,8 @@ function renderSettings() {
     ? `${learned} route${learned===1?'':'s'} remembered — their km fill in by themselves.`
     : `Nothing learned yet. Logged routes fill in their km next time.`;
 
+  renderRoutesList();
+
   document.getElementById('presets-list').innerHTML = S.presets.length
     ? S.presets.map(p=>`<div class="preset-row tap" onclick="editPreset(${p.id})">
         <span>${esc(p.name)} <span style="color:var(--muted);font-size:12px;">${p.km} km</span></span>${CHEV}
@@ -2476,6 +2487,116 @@ function openAddPlace() {
     withUndo(`${label} added`, () => { if (!S.settings[key]) S.settings[key]=[]; S.settings[key].push({ id:Date.now(), label, addr }); });
   };
   setTimeout(() => document.getElementById('ap-label').focus(), 350);
+}
+
+/* ── LEARNED DISTANCES ── route memory, readable and editable. A route you add
+   here works like one learned from a trip: pick those people and the km is there. */
+const normAddr = a => (a||'').toLowerCase().trim();
+
+// Turn a route signature back into people and places.
+function describeRoute(sig) {
+  const [h, stops, c] = sig.split('|');
+  const used = new Set(), crew = [], names = [];
+  (stops ? stops.split('>') : []).forEach(a => {
+    const m = S.members.find(m => !used.has(m.id) && normAddr(m.addr || m.name) === a);
+    if (m) { used.add(m.id); crew.push(m.id); names.push(m.name); }
+    else names.push(a);   // a one-time address, or someone no longer in the crew
+  });
+  const alt = (list, a) => (list||[]).find(x => normAddr(x.addr) === a);
+  const hAlt = normAddr(S.settings.homeAddr) === h ? null : alt(S.settings.homeAddrs, h);
+  const cAlt = normAddr(S.settings.clubAddr) === c ? null : alt(S.settings.clubAddrs, c);
+  return {
+    crew, names, locked: crew.length !== names.length,
+    home: hAlt ? hAlt.id : null, club: cAlt ? cAlt.id : null,
+    from: hAlt ? hAlt.label : normAddr(S.settings.homeAddr) === h || !h ? 'Home' : h,
+    to:   cAlt ? cAlt.label : normAddr(S.settings.clubAddr) === c || !c ? 'Hall' : c,
+  };
+}
+
+function renderRoutesList() {
+  const rows = Object.entries(S.routeMemory||{})
+    .map(([sig, mem]) => ({ sig, mem, r: describeRoute(sig) }))
+    .sort((a,b) => (b.mem.n||0) - (a.mem.n||0) || b.mem.ts - a.mem.ts);
+  document.getElementById('routes-list').innerHTML = rows.length
+    ? rows.map(({ sig, mem, r }) => `<button class="srow tap" data-sig="${esc(sig)}" onclick="openRouteSheet(this.dataset.sig)">
+        <div class="t"><b>${r.names.length ? esc(r.names.join(' + ')) : 'Just you'}</b>
+          <small>${esc(r.from)} → ${esc(r.to)} · ${mem.n ? `${mem.n} trip${mem.n===1?'':'s'}` : 'added by you'}</small></div>
+        <span class="km">${mem.km} km</span>${CHEV}
+      </button>`).join('')
+    : '<div class="set-empty">Every trip you log teaches the app its distance. Add routes here to have the km ready before you ever drive them.</div>';
+}
+
+let routeDraft = null;
+function openRouteSheet(sig) {
+  const mem = sig ? S.routeMemory[sig] : null;
+  const r = sig ? describeRoute(sig) : { crew:[], names:[], home:null, club:null, locked:false };
+  routeDraft = { sig: sig || null, crew: new Set(r.crew), home: r.home, club: r.club, locked: r.locked, names: r.names };
+  const homes = [{ id:null, label:'Home' }, ...(S.settings.homeAddrs||[])];
+  const clubs = [{ id:null, label:'Hall' }, ...(S.settings.clubAddrs||[])];
+  openSheet(`
+    <div class="modal-title">${sig ? 'Edit route' : 'Add a route'}</div>
+    <div class="modal-sub">${sig
+      ? (mem.n ? `Learned from ${mem.n} trip${mem.n===1?'':'s'}. Change the km if it's off.` : 'Added by you.')
+      : 'Pick who you pick up. Next time you choose the same people, the km is already there.'}</div>
+    <div class="igroup"><label>${r.locked ? 'Stops' : 'Who you pick up'}</label>
+      ${r.locked
+        ? `<div style="font-size:14px; line-height:1.5; margin:0 4px;">${esc(r.names.join(' + '))}<br><span style="color:var(--muted); font-size:12.5px;">Includes a one-time address, so only the km can change.</span></div>`
+        : '<div class="chips" id="rd-crew"></div>'}
+    </div>
+    ${homes.length > 1 ? '<div class="igroup"><label>From</label><div class="chips" id="rd-home"></div></div>' : ''}
+    ${clubs.length > 1 ? '<div class="igroup"><label>To</label><div class="chips" id="rd-club"></div></div>' : ''}
+    <div class="igroup"><label>Kilometers</label><input type="number" id="rd-km" step="0.1" min="0.1" inputmode="decimal" value="${mem ? mem.km : ''}" placeholder="e.g. 14.2" /></div>
+    <hr>
+    <div style="display:flex; gap:8px;">
+      ${sig ? `<button class="btn danger" onclick="deleteRoute()">Delete</button>` : ''}
+      <div style="flex:1;"></div>
+      <button class="btn ghost" onclick="closeSheet()">Cancel</button>
+      <button class="btn coral" onclick="saveRoute()">${sig ? 'Save' : 'Add route'}</button>
+    </div>`);
+  routeDraft.homes = homes; routeDraft.clubs = clubs;
+  renderRouteDraft();
+  if (!sig && !S.members.length) setTimeout(() => document.getElementById('rd-km').focus(), 350);
+}
+
+function renderRouteDraft() {
+  const d = routeDraft;
+  const chip = (on, label, onclick) => `<div class="chip ${on?'on':''}" style="animation:none;" onclick="${onclick}"><span class="pip"></span>${esc(label)}</div>`;
+  const crewEl = document.getElementById('rd-crew');
+  if (crewEl) crewEl.innerHTML = S.members.map(m => chip(d.crew.has(m.id), m.name, `routeDraftToggle(${m.id})`)).join('');
+  const homeEl = document.getElementById('rd-home');
+  if (homeEl) homeEl.innerHTML = d.homes.map(h => chip(d.home === h.id, h.label, `routeDraft.home=${h.id}; renderRouteDraft()`)).join('');
+  const clubEl = document.getElementById('rd-club');
+  if (clubEl) clubEl.innerHTML = d.clubs.map(c => chip(d.club === c.id, c.label, `routeDraft.club=${c.id}; renderRouteDraft()`)).join('');
+}
+function routeDraftToggle(id) {
+  routeDraft.crew.has(id) ? routeDraft.crew.delete(id) : routeDraft.crew.add(id);
+  renderRouteDraft();
+}
+
+function saveRoute() {
+  const d = routeDraft;
+  const km = parseFloat(document.getElementById('rd-km').value);
+  if (!(km > 0)) { toast('Add the kilometers', { error:true }); return; }
+  const sig = d.locked ? d.sig
+    : routeSignature([...d.crew], {}, homeAddrFor(d.home), clubAddrFor(d.club));
+  const label = d.locked ? d.names.join(' + ') : [...d.crew].map(id => S.members.find(m=>m.id===id).name).join(' + ') || 'Just you';
+  const replaces = sig !== d.sig && S.routeMemory[sig];
+  closeSheet();
+  withUndo(replaces ? `Updated ${label} · ${km} km` : d.sig ? `Saved ${label} · ${km} km` : `Added ${label} · ${km} km`, () => {
+    const prev = S.routeMemory[sig] || (d.sig && S.routeMemory[d.sig]) || { n:0 };
+    if (d.sig && d.sig !== sig) delete S.routeMemory[d.sig];
+    S.routeMemory[sig] = { km, n: prev.n || 0, ts: Date.now() };
+    // Drop an auto-filled km so the trip screen refills from the updated memory.
+    if (kmSource === 'auto') { document.getElementById('km-input').value = ''; kmSource = null; }
+  });
+}
+function deleteRoute() {
+  const d = routeDraft;
+  closeSheet();
+  withUndo('Route forgotten', () => {
+    delete S.routeMemory[d.sig];
+    if (kmSource === 'auto') { document.getElementById('km-input').value = ''; kmSource = null; }
+  });
 }
 
 function openAddPreset() {
