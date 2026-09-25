@@ -175,6 +175,8 @@ spared people = ride free, not counted in total_people
 - **Shapes**: cards 22–26px radius, pills/avatars fully round, soft shadows (`--shadow`, `--shadow-sm`). No gradients except the hue-free map drawing.
 - **Trip screen**: `.map-hero` (stylised street map from `renderRouteViz()`) with a floating `.route-card`, then `.main-card` overlapping it: crew pills with avatars → distance → price → **slide to drive** (`#slide`, `initSlide()`, `slideDone()`). Sliding, not tapping, is the primary action — no accidental logs.
 - **Nav**: floating dark capsule of 5 icon buttons (`nav`, fixed), active = accent circle.
+- **Settings** is all tap-to-edit rows plus one "+ Add …" row per list (`.srow`, `.addrow`) that opens a sheet (`openAddMember()`, `openAddPlace()`, `openAddPreset()`, `editMainPlace()`) — no permanently visible add forms.
+- **Toasts** last 2.6s (5s with Undo, with a countdown bar), dismiss on tap, and plain ones clear on screen change.
 - **Chip states**: accent outline = paying passenger, orange = free ride, dashed accent = came to you but pays, grey = not in the car.
 - All colors are CSS variables in `:root` — never hardcode hex in new code. Old names (`--muted`, `--amber`, `--border`, `--cyan`, `--coral`) are kept as aliases.
 

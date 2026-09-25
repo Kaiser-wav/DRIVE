@@ -256,6 +256,36 @@ input[type=date]::-webkit-date-and-time-value { text-align:left; }
 .tap { cursor:pointer; margin:0 -16px; padding-left:16px !important; padding-right:16px !important; transition:background-color .15s; }
 .tap:active { background:var(--field); }
 @media (hover:hover) { .tap:hover { background:var(--field); } .pcard:hover { box-shadow:var(--shadow); } }
+.addrow { display:flex; align-items:center; gap:12px; width:calc(100% + 32px); margin:0 -16px -16px; padding:14px 16px; border:none; border-top:1px solid var(--line); background:none; color:var(--p); font-size:14.5px; font-weight:700; cursor:pointer; text-align:left; border-radius:0 0 24px 24px; }
+.addrow span { width:34px; height:34px; border-radius:50%; background:var(--p-soft); display:grid; place-items:center; font-size:20px; font-weight:600; line-height:1; flex-shrink:0; }
+.addrow:active { background:var(--field); }
+.card > .addrow:first-child { border-top:none; margin-top:-16px; border-radius:24px; }
+.srow { display:flex; align-items:center; gap:12px; width:calc(100% + 32px); padding:13px 0; border:none; border-top:1px solid var(--line); background:none; color:var(--text); text-align:left; font-size:14.5px; cursor:pointer; }
+.srow:first-child { border-top:none; }
+.card > .srow:first-child { margin-top:-4px; }
+.srow .ic { width:34px; height:34px; border-radius:50%; background:var(--p-soft); color:var(--p); display:grid; place-items:center; flex-shrink:0; }
+.srow .ic i { display:block; width:10px; height:10px; }
+.srow .ic.home i { border-radius:50%; background:var(--p); }
+.srow .ic.club { background:var(--field); }
+.srow .ic.club i { border-radius:3px; background:var(--text); }
+.srow .t { flex:1; min-width:0; }
+.srow .t b { display:block; font-weight:600; }
+.srow .t b.danger { color:var(--danger); }
+.srow .t b.missing { color:var(--p); }
+.srow .t small { display:block; font-size:12px; color:var(--muted); margin-top:2px; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.srow .tag { font-size:10.5px; font-weight:700; color:var(--muted); background:var(--field); padding:3px 8px; border-radius:100px; flex-shrink:0; }
+.set-empty { font-size:13px; color:var(--muted); line-height:1.5; padding:2px 0 14px; }
+.vrow { display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid var(--line); }
+.vrow:first-child { border-top:none; padding-top:0; }
+.vrow label { flex:1; font-size:14.5px; font-weight:600; }
+.vrow label small { display:block; font-size:12px; font-weight:400; color:var(--muted); margin-top:2px; }
+.vfield { display:flex; align-items:center; gap:6px; background:var(--field); border-radius:14px; padding-right:12px; width:150px; border:1.5px solid transparent; }
+.vfield:focus-within { border-color:var(--p); background:var(--card); }
+.vfield input { background:transparent !important; border:none !important; text-align:right; font-weight:700; padding:10px 4px 10px 10px; }
+.vfield span { font-size:12px; color:var(--muted); font-weight:600; white-space:nowrap; }
+.veh-example { margin-top:12px; font-size:12.5px; color:var(--p); background:var(--p-soft); border-radius:14px; padding:10px 12px; font-weight:500; }
+.set-note { font-size:12px; color:var(--muted); margin:10px 0 0 4px; line-height:1.5; }
+.seg-sheet { margin-bottom:14px; }
 .row-chev { color:var(--muted); flex-shrink:0; display:flex; opacity:.7; }
 
 /* ── STATS ── */
@@ -332,6 +362,9 @@ input[type=date]::-webkit-date-and-time-value { text-align:left; }
 .toast-dot { width:8px; height:8px; border-radius:50%; background:var(--toast-accent); flex-shrink:0; }
 .toast.err .toast-dot { background:var(--danger); }
 .toast-msg { flex:1; min-width:0; line-height:1.4; }
+.toast { position:relative; overflow:hidden; cursor:pointer; }
+.toast-bar { position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--toast-accent); opacity:.7; transform-origin:left; animation:toastBar linear forwards; }
+@keyframes toastBar { from { transform:scaleX(1); } to { transform:scaleX(0); } }
 .toast-action { background:none; border:none; color:var(--toast-accent); font-size:13px; font-weight:800; cursor:pointer; padding:8px 10px; border-radius:100px; flex-shrink:0; }
 
 /* Demo mode strip */
@@ -463,57 +496,40 @@ html.theme-anim body, html.theme-anim .card, html.theme-anim .fcard, html.theme-
 <div id="s-settings" class="screen">
   <div class="page-title">Settings</div>
 
-  <div class="label">Appearance</div>
-  <div class="card" style="padding:10px; margin-bottom:20px;">
-    <div class="toggle-pill">
-      <button id="btn-theme-dark" onclick="applyTheme('dark')">Dark</button>
-      <button id="btn-theme-light" onclick="applyTheme('light')">Light</button>
-    </div>
-  </div>
-
-  <div class="label">Your home address</div>
-  <div class="card"><input type="text" id="s-home" placeholder="Your home address" oninput="sv('homeAddr',this.value)" /></div>
-  <div class="label" style="margin-top:4px;">Alternative starting points</div>
-  <div class="card">
-    <div id="home-addrs-list"></div>
-    <hr id="home-addrs-hr" style="display:none;">
-    <div class="igroup"><label>Label</label><input type="text" id="ha-label" placeholder="e.g. Felix's place" /></div>
-    <div class="igroup"><label>Address</label><input type="text" id="ha-addr" placeholder="Full address" /></div>
-    <button class="btn full" onclick="addHomeAddr()">Add starting point</button>
-  </div>
-  <div class="label">Club / destination address</div>
-  <div class="card"><input type="text" id="s-club" placeholder="Hall or club address" oninput="sv('clubAddr',this.value)" /></div>
-  <div class="label" style="margin-top:4px;">Alternative destinations</div>
-  <div class="card">
-    <div id="club-addrs-list"></div>
-    <hr id="club-addrs-hr" style="display:none;">
-    <div class="igroup"><label>Label</label><input type="text" id="ca-label" placeholder="e.g. Away hall" /></div>
-    <div class="igroup"><label>Address</label><input type="text" id="ca-addr" placeholder="Full address" /></div>
-    <button class="btn full" onclick="addClubAddr()">Add destination</button>
-  </div>
-  <div class="label">Vehicle</div>
-  <div class="card">
-    <div class="igroup"><label>Consumption (L/100km)</label><input type="number" id="s-cons" value="7.5" step="0.1" min="1" oninput="sv('consumption',this.value)" /></div>
-    <div class="igroup"><label>Gas price (€/L)</label><input type="number" id="s-gas" value="1.79" step="0.01" min="0.5" oninput="sv('gasPrice',this.value)" /></div>
-    <div class="igroup"><label>Driver surcharge (€/km, optional)</label><input type="number" id="s-surch" value="0" step="0.01" min="0" oninput="sv('surcharge',this.value)" /></div>
-  </div>
-  <div class="label">Crew members</div>
+  <div class="label">Crew</div>
   <div class="card">
     <div id="members-list"></div>
-    <hr>
-    <div class="label" style="margin-bottom:10px;">Add member</div>
-    <div class="igroup"><label>Name</label><input type="text" id="n-name" placeholder="e.g. Felix" /></div>
-    <div class="igroup"><label>Address (optional — for Maps route)</label><input type="text" id="n-addr" placeholder="e.g. Musterstr. 5, Saarbrücken" /></div>
-    <button class="btn coral full" onclick="addMember()" style="margin-top:4px;">Add to crew</button>
+    <button class="addrow" onclick="openAddMember()"><span>+</span>Add crew member</button>
   </div>
+
+  <div class="label">Places</div>
+  <div class="card">
+    <div id="places-list"></div>
+    <button class="addrow" onclick="openAddPlace()"><span>+</span>Add another start or destination</button>
+  </div>
+
+  <div class="label">Car &amp; costs</div>
+  <div class="card">
+    <div class="vrow"><label for="s-cons">Fuel use<small>What your car uses</small></label><div class="vfield"><input type="number" id="s-cons" step="0.1" min="1" inputmode="decimal" oninput="onVehicle('consumption',this.value)" /><span>L/100km</span></div></div>
+    <div class="vrow"><label for="s-gas">Fuel price<small>What you pay at the pump</small></label><div class="vfield"><input type="number" id="s-gas" step="0.01" min="0.5" inputmode="decimal" oninput="onVehicle('gasPrice',this.value)" /><span>€/L</span></div></div>
+    <div class="vrow"><label for="s-surch">Driver surcharge<small>Optional, only passengers pay it</small></label><div class="vfield"><input type="number" id="s-surch" step="0.01" min="0" inputmode="decimal" oninput="onVehicle('surcharge',this.value)" /><span>€/km</span></div></div>
+    <div class="veh-example" id="veh-example"></div>
+  </div>
+
   <div class="label">Distance presets</div>
   <div class="card">
     <div id="presets-list"></div>
-    <hr>
-    <div class="igroup"><label>Label</label><input type="text" id="p-name" placeholder="e.g. Direct to hall" /></div>
-    <div class="igroup"><label>Kilometers</label><input type="number" id="p-km" placeholder="38" min="1" step="0.1" /></div>
-    <button class="btn full" onclick="addPreset()">Add preset</button>
+    <button class="addrow" onclick="openAddPreset()"><span>+</span>Add preset</button>
   </div>
+
+  <div class="label">Appearance</div>
+  <div class="card" style="padding:6px;">
+    <div class="toggle-pill">
+      <button id="btn-theme-light" onclick="applyTheme('light')">Light</button>
+      <button id="btn-theme-dark" onclick="applyTheme('dark')">Dark</button>
+    </div>
+  </div>
+
   <div class="label">Backup</div>
   <div class="card">
     <div style="display:flex; gap:8px;">
@@ -521,18 +537,15 @@ html.theme-anim body, html.theme-anim .card, html.theme-anim .fcard, html.theme-
       <button class="btn" style="flex:1;" onclick="document.getElementById('import-file').click()">Restore</button>
     </div>
     <input type="file" id="import-file" accept="application/json,.json" style="display:none;" onchange="importBackup(this)" />
-    <div style="font-size:12px; color:var(--muted); margin:10px 0 0 2px; line-height:1.5;" id="backup-sub"></div>
+    <div class="set-note" id="backup-sub"></div>
   </div>
+
   <div class="label">Data</div>
   <div class="card">
-    <button class="btn danger full" onclick="zeroDebts()" style="width:100%; text-align:left; padding:12px 14px;">Zero out all debts</button>
-    <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;">Set every debt balance to exactly €0.00, bypassing payment history.</div>
-    <button class="btn danger full" onclick="clearTrips()" style="width:100%; text-align:left; padding:12px 14px;">Clear history</button>
-    <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;">Remove all logged trips and payments. Does not touch debt balances.</div>
-    <button class="btn danger full" id="forget-routes-btn" onclick="forgetRoutes()" style="width:100%; text-align:left; padding:12px 14px;">Forget learned distances</button>
-    <div style="font-size:12px; color:var(--muted); margin: 6px 0 14px 2px;" id="forget-routes-sub">The app remembers the km of every route you log and fills it in automatically next time.</div>
-    <button class="btn full" onclick="location.href=location.pathname+'?demo'" style="width:100%; text-align:left; padding:12px 14px;">Try the app with demo data</button>
-    <div style="font-size:12px; color:var(--muted); margin: 6px 0 0 2px;">Opens a separate sandbox with 10 weeks of made-up trips. Your real data stays untouched.</div>
+    <button class="srow tap" onclick="location.href=location.pathname+'?demo'"><div class="t"><b>Try the app with demo data</b><small>A separate sandbox with 10 weeks of made-up trips. Your real data stays untouched.</small></div><span class="row-chev"><svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+    <button class="srow tap" id="forget-routes-btn" onclick="forgetRoutes()"><div class="t"><b class="danger">Forget learned distances</b><small id="forget-routes-sub"></small></div></button>
+    <button class="srow tap" onclick="clearTrips()"><div class="t"><b class="danger">Clear history</b><small>Removes all trips and payments. Balances stay.</small></div></button>
+    <button class="srow tap" onclick="zeroDebts()"><div class="t"><b class="danger">Zero out all debts</b><small>Sets every balance to €0.00.</small></div></button>
   </div>
 </div>
 
@@ -670,6 +683,7 @@ function showScreen(id) {
   document.getElementById('s-'+id).classList.add('active');
   document.getElementById('nav-'+id).classList.add('active');
   window.scrollTo(0,0);
+  if (!toastHasAction) hideToast();   // keep an Undo around, drop plain notices
   if (id==='debts') renderDebts();
   if (id==='log') renderLog();
   if (id==='stats') renderStats();
@@ -717,17 +731,21 @@ function tsForDay(iso, timeFrom) {
 }
 
 /* ── TOAST ── */
-let toastTimer = null;
+let toastTimer = null, toastHasAction = false;
 function toast(msg, opts={}) {
   const wrap = document.getElementById('toast-wrap');
-  wrap.innerHTML = `<div class="toast ${opts.error?'err':''}" role="status"><span class="toast-dot"></span><div class="toast-msg">${esc(msg)}</div>${opts.action?`<button class="toast-action" id="toast-action">${esc(opts.action.label)}</button>`:''}</div>`;
+  const ms = opts.action ? 5000 : 2600;
+  toastHasAction = !!opts.action;
+  wrap.innerHTML = `<div class="toast ${opts.error?'err':''}" role="status"><span class="toast-dot"></span><div class="toast-msg">${esc(msg)}</div>${opts.action?`<button class="toast-action" id="toast-action">${esc(opts.action.label)}</button><span class="toast-bar" style="animation-duration:${ms}ms"></span>`:''}</div>`;
   const el = wrap.firstChild;
+  el.addEventListener('click', e => { if (!e.target.closest('.toast-action')) hideToast(); });
   if (opts.action) document.getElementById('toast-action').onclick = () => { hideToast(); opts.action.fn(); };
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(hideToast, opts.action ? 6000 : 3000);
+  toastTimer = setTimeout(hideToast, ms);
 }
 function hideToast() {
+  clearTimeout(toastTimer);
   const el = document.querySelector('#toast-wrap .toast');
   if (!el) return;
   el.classList.remove('show');
@@ -775,7 +793,7 @@ function confirmSheet({ title, body, ok='Confirm', danger=false }) {
   });
 }
 // A simple edit form: labelled inputs, Save, and an optional destructive action.
-function formSheet({ title, sub='', fields, save, remove, removeLabel='Remove' }) {
+function formSheet({ title, sub='', fields, save, remove, removeLabel='Remove', saveLabel='Save' }) {
   openSheet(`<div class="modal-title">${esc(title)}</div>
     ${sub ? `<div class="modal-sub">${sub}</div>` : '<div style="height:16px;"></div>'}
     ${fields.map((f,i) => `<div class="igroup"><label>${esc(f.label)}</label>
@@ -785,14 +803,16 @@ function formSheet({ title, sub='', fields, save, remove, removeLabel='Remove' }
       ${remove ? `<button class="btn danger" id="ff-remove">${esc(removeLabel)}</button>` : ''}
       <div style="flex:1;"></div>
       <button class="btn ghost" onclick="closeSheet()">Cancel</button>
-      <button class="btn coral" id="ff-save">Save</button>
+      <button class="btn coral" id="ff-save">${esc(saveLabel)}</button>
     </div>`);
   document.getElementById('ff-save').onclick = () => {
     const vals = fields.map((f,i) => document.getElementById('ff-'+i).value.trim());
     closeSheet();
-    if (save(vals) === false) formSheet({ title, sub, fields:fields.map((f,i)=>({...f, value:vals[i]})), save, remove, removeLabel });
+    if (save(vals) === false) formSheet({ title, sub, fields:fields.map((f,i)=>({...f, value:vals[i]})), save, remove, removeLabel, saveLabel });
   };
   if (remove) document.getElementById('ff-remove').onclick = () => { closeSheet(); remove(); };
+  const first = document.getElementById('ff-0');
+  if (first && !first.value) setTimeout(() => first.focus(), 350);
 }
 function fmtDate(ts) {
   const d = new Date(ts), o = { day:'2-digit', month:'short' };
@@ -1074,6 +1094,7 @@ function slideDone() {
   setTimeout(() => { slide.classList.remove('done'); slideLock = false; slideReset(); renderActions(); }, 1600);
 }
 let slideReset = () => {};
+let slideHinted = false;   // explain the slide once per session, then just wiggle
 function initSlide() {
   const slide = document.getElementById('slide'), thumb = document.getElementById('slide-thumb');
   const fill = slide.querySelector('.fill'), txt = document.getElementById('slide-txt');
@@ -1107,7 +1128,7 @@ function initSlide() {
       primaryAction();                    // inside the gesture, so Maps isn't popup-blocked
       if (!slideLock) slideReset();       // logging didn't happen (e.g. missing km)
     } else {
-      if (!moved) { nudge(); toast('Slide the button to the right to log'); }
+      if (!moved) { nudge(); if (!slideHinted) { slideHinted = true; toast('Slide the button to the right to log'); } }
       slideReset();
     }
   };
@@ -2026,68 +2047,123 @@ function renderWeekChart() {
 
 /* ── SETTINGS ── */
 function renderSettings() {
-  document.getElementById('s-home').value=S.settings.homeAddr||'';
-  document.getElementById('s-club').value=S.settings.clubAddr||'';
   document.getElementById('s-cons').value=S.settings.consumption||7.5;
   document.getElementById('s-gas').value=S.settings.gasPrice||1.79;
   document.getElementById('s-surch').value=S.settings.surcharge||0;
+  renderVehicleExample();
 
   const t = S.settings.theme || 'light';
-  const btnDark  = document.getElementById('btn-theme-dark');
-  const btnLight = document.getElementById('btn-theme-light');
-  if (btnDark)  btnDark.classList.toggle('active',  t !== 'light');
-  if (btnLight) btnLight.classList.toggle('active', t === 'light');
-
-  const homeAddrs = S.settings.homeAddrs||[];
-  const clubAddrs = S.settings.clubAddrs||[];
-
-  document.getElementById('home-addrs-hr').style.display = homeAddrs.length ? '' : 'none';
-  document.getElementById('home-addrs-list').innerHTML = homeAddrs.map(h=>
-    `<div class="preset-row tap" onclick="editAltAddr('home',${h.id})">
-      <span>${esc(h.label)} <span style="color:var(--muted);font-size:12px;">${esc(shortAddr(h.addr))}</span></span>${CHEV}
-    </div>`).join('');
-
-  document.getElementById('club-addrs-hr').style.display = clubAddrs.length ? '' : 'none';
-  document.getElementById('club-addrs-list').innerHTML = clubAddrs.map(c=>
-    `<div class="preset-row tap" onclick="editAltAddr('club',${c.id})">
-      <span>${esc(c.label)} <span style="color:var(--muted);font-size:12px;">${esc(shortAddr(c.addr))}</span></span>${CHEV}
-    </div>`).join('');
+  document.getElementById('btn-theme-dark').classList.toggle('active',  t === 'dark');
+  document.getElementById('btn-theme-light').classList.toggle('active', t !== 'dark');
 
   document.getElementById('members-list').innerHTML = S.members.length
     ? S.members.map(m=>`<div class="member-row tap" onclick="editMember(${m.id})">
         <div class="avatar">${ini(m.name)}</div>
-        <div class="member-info"><div class="member-name-txt">${esc(m.name)}</div><div class="member-addr-txt">${m.addr?esc(m.addr):'No address'}</div></div>${CHEV}
+        <div class="member-info"><div class="member-name-txt">${esc(m.name)}</div><div class="member-addr-txt">${m.addr?esc(m.addr):'No address — tap to add one for the route'}</div></div>${CHEV}
       </div>`).join('')
-    : '<div style="font-size:13px;color:var(--muted);padding:4px 0;">No crew yet</div>';
+    : '<div class="set-empty">Add the people you drive. Their address is used to plan the pickup route in Maps.</div>';
+
+  // Places: home + club first (always shown, even when empty), then alternatives
+  const place = (kind, title, addr, onclick, tag) => `<button class="srow tap" onclick="${onclick}">
+      <span class="ic ${kind}"><i></i></span>
+      <div class="t">${addr ? `<b>${esc(title)}</b><small>${esc(addr)}</small>` : `<b class="missing">Set ${esc(title.toLowerCase())}</b><small>Needed to open routes in Maps</small>`}</div>
+      ${tag ? `<span class="tag">${tag}</span>` : ''}${CHEV}
+    </button>`;
+  document.getElementById('places-list').innerHTML = [
+    place('home', 'Home', S.settings.homeAddr, "editMainPlace('home')"),
+    ...(S.settings.homeAddrs||[]).map(h => place('home', h.label, h.addr, `editAltAddr('home',${h.id})`, 'Start')),
+    place('club', 'Club / hall', S.settings.clubAddr, "editMainPlace('club')"),
+    ...(S.settings.clubAddrs||[]).map(c => place('club', c.label, c.addr, `editAltAddr('club',${c.id})`, 'Destination'))
+  ].join('');
 
   renderBackupSub();
 
   const learned = Object.keys(S.routeMemory||{}).length;
-  document.getElementById('forget-routes-btn').textContent = learned
-    ? `Forget learned distances (${learned})`
-    : 'Forget learned distances';
   document.getElementById('forget-routes-sub').textContent = learned
-    ? `${learned} route${learned===1?'':'s'} remembered. The km of a route you've driven before fills itself in automatically.`
-    : `Nothing learned yet. Once you log a trip, its km fills itself in next time you pick the same crew and route.`;
+    ? `${learned} route${learned===1?'':'s'} remembered — their km fill in by themselves.`
+    : `Nothing learned yet. Logged routes fill in their km next time.`;
 
   document.getElementById('presets-list').innerHTML = S.presets.length
     ? S.presets.map(p=>`<div class="preset-row tap" onclick="editPreset(${p.id})">
         <span>${esc(p.name)} <span style="color:var(--muted);font-size:12px;">${p.km} km</span></span>${CHEV}
       </div>`).join('')
-    : '<div style="font-size:13px;color:var(--muted);padding:4px 0;">No presets yet</div>';
+    : '<div class="set-empty">Save distances you drive often, like "Straight to the hall · 12 km", to fill them in with one tap.</div>';
 }
 
-function addMember() {
-  const name=document.getElementById('n-name').value.trim();
-  const addr=document.getElementById('n-addr').value.trim();
-  if (!name) { toast('Give them a name first', { error:true }); return; }
-  if (S.members.some(m=>m.name.toLowerCase()===name.toLowerCase())) { toast(`${name} is already in the crew`, { error:true }); return; }
-  S.members.push({id:Date.now(),name,addr});
-  if (S.debts[name]===undefined) S.debts[name]=0;
-  document.getElementById('n-name').value='';
-  document.getElementById('n-addr').value='';
-  persist(); renderSettings(); renderTrip();
-  toast(`${name} joined the crew`);
+/* Car & costs: save, show a concrete example, keep the trip price in sync */
+function onVehicle(k, v) { sv(k, v); renderVehicleExample(); updatePreview(); }
+function renderVehicleExample() {
+  const km = 30, fuel = km * fuelPerKm(), sur = (parseFloat(S.settings.surcharge)||0) * km;
+  document.getElementById('veh-example').textContent =
+    `A ${km} km trip costs €${fuel.toFixed(2)} in fuel` + (sur ? ` · passengers also pay €${sur.toFixed(2)} surcharge` : '');
+}
+
+function openAddMember() {
+  formSheet({
+    title: 'Add to crew', sub: 'Their address is used to plan the pickup route in Maps. You can add it later.', saveLabel: 'Add to crew',
+    fields: [
+      { label:'Name', value:'', placeholder:'e.g. Felix' },
+      { label:'Address (optional)', value:'', placeholder:'e.g. Musterstr. 5, Saarbrücken' }
+    ],
+    save: ([name, addr]) => {
+      if (!name) { toast('Give them a name first', { error:true }); return false; }
+      if (S.members.some(m=>m.name.toLowerCase()===name.toLowerCase())) { toast(`${name} is already in the crew`, { error:true }); return false; }
+      withUndo(`${name} joined the crew`, () => {
+        S.members.push({ id:Date.now(), name, addr });
+        if (S.debts[name]===undefined) S.debts[name]=0;
+      });
+    }
+  });
+}
+
+function editMainPlace(kind) {
+  const key = kind==='home' ? 'homeAddr' : 'clubAddr';
+  formSheet({
+    title: kind==='home' ? 'Home address' : 'Club / hall address',
+    sub: kind==='home' ? 'Where your drives usually start.' : 'Where your drives usually go.',
+    fields: [{ label:'Address', value:S.settings[key]||'', placeholder: kind==='home' ? 'e.g. Hohenzollernstr. 15, Saarbrücken' : 'e.g. Sporthalle Rastbachtal, Saarbrücken' }],
+    save: ([addr]) => { withUndo(addr ? 'Address saved' : 'Address cleared', () => { S.settings[key] = addr; }); }
+  });
+}
+
+function openAddPlace() {
+  let kind = 'home';
+  openSheet(`
+    <div class="modal-title">Add a place</div>
+    <div class="modal-sub">For drives that start or end somewhere else, like a parents' place or an away game.</div>
+    <div class="toggle-pill seg-sheet"><button id="ap-home" class="active">Start point</button><button id="ap-club">Destination</button></div>
+    <div class="igroup"><label>Name</label><input type="text" id="ap-label" placeholder="e.g. Parents' place" /></div>
+    <div class="igroup"><label>Address</label><input type="text" id="ap-addr" placeholder="Full address" /></div>
+    <hr>
+    <div style="display:flex; gap:8px;"><div style="flex:1;"></div><button class="btn ghost" onclick="closeSheet()">Cancel</button><button class="btn coral" id="ap-save">Add place</button></div>`);
+  const set = k => {
+    kind = k;
+    document.getElementById('ap-home').classList.toggle('active', k==='home');
+    document.getElementById('ap-club').classList.toggle('active', k==='club');
+    document.getElementById('ap-label').placeholder = k==='home' ? "e.g. Parents' place" : 'e.g. Away hall';
+  };
+  document.getElementById('ap-home').onclick = () => set('home');
+  document.getElementById('ap-club').onclick = () => set('club');
+  document.getElementById('ap-save').onclick = () => {
+    const label = document.getElementById('ap-label').value.trim(), addr = document.getElementById('ap-addr').value.trim();
+    if (!label || !addr) { toast('Add both a name and an address', { error:true }); return; }
+    const key = kind==='home' ? 'homeAddrs' : 'clubAddrs';
+    closeSheet();
+    withUndo(`${label} added`, () => { if (!S.settings[key]) S.settings[key]=[]; S.settings[key].push({ id:Date.now(), label, addr }); });
+  };
+  setTimeout(() => document.getElementById('ap-label').focus(), 350);
+}
+
+function openAddPreset() {
+  formSheet({
+    title: 'Add a distance preset', sub: 'Shows up under the distance field for one-tap filling.', saveLabel: 'Add preset',
+    fields: [{ label:'Name', value:'', placeholder:'e.g. Straight to the hall' }, { label:'Kilometers', value:'', type:'number', placeholder:'e.g. 12.4' }],
+    save: ([name, kmStr]) => {
+      const km = parseFloat(kmStr);
+      if (!name || !(km>0)) { toast('Give it a name and a distance', { error:true }); return false; }
+      withUndo(`Preset "${name}" added`, () => { S.presets.push({ id:Date.now(), name, km }); });
+    }
+  });
 }
 
 function editMember(id) {
@@ -2133,16 +2209,6 @@ function removeMember(id) {
   });
 }
 
-function addPreset() {
-  const name=document.getElementById('p-name').value.trim();
-  const km=parseFloat(document.getElementById('p-km').value);
-  if (!name||!(km>0)) { toast('Give the preset a name and a distance', { error:true }); return; }
-  S.presets.push({id:Date.now(),name,km});
-  document.getElementById('p-name').value='';
-  document.getElementById('p-km').value='';
-  persist(); renderSettings(); renderTrip();
-  toast(`Preset "${name}" added`);
-}
 function editPreset(id) {
   const p = S.presets.find(p=>p.id===id);
   if (!p) return;
@@ -2203,11 +2269,12 @@ function renderRouteSelector() {
   const clubAddrs = S.settings.clubAddrs||[];
   const sel = document.getElementById('route-selector');
   const toggle = document.getElementById('rs-toggle');
-  // Collapsed by default so the card doesn't cover the map; opens on demand
-  // and stays open while an alternative start or destination is picked.
+  // Collapsed by default so the card doesn't cover the map; the chosen
+  // endpoints stay visible in the card either way.
   const has = homeAddrs.length || clubAddrs.length;
-  const open = has && (rsOpen || tripHome != null || tripClub != null);
-  toggle.style.display = has && !open ? '' : 'none';
+  const open = has && rsOpen;
+  toggle.style.display = has ? '' : 'none';
+  toggle.textContent = open ? 'Done' : 'Other start or destination';
   if (!open) { sel.style.display='none'; return; }
   sel.style.display='';
 
@@ -2235,7 +2302,7 @@ function renderRouteSelector() {
 }
 
 let rsOpen = false;
-function openRouteSelector() { rsOpen = true; renderRouteSelector(); }
+function openRouteSelector() { rsOpen = !rsOpen; renderRouteSelector(); }
 
 function selectTripAddr(type, id) {
   if (type==='home') tripHome = id;
@@ -2247,21 +2314,6 @@ function selectTripAddr(type, id) {
 }
 
 /* ── ALT ADDRESSES ── */
-function addAltAddr(type) {
-  const pre = type==='home' ? 'ha' : 'ca', key = type==='home' ? 'homeAddrs' : 'clubAddrs';
-  const label=document.getElementById(pre+'-label').value.trim();
-  const addr=document.getElementById(pre+'-addr').value.trim();
-  if (!label||!addr) { toast('Add both a label and an address', { error:true }); return; }
-  if (!S.settings[key]) S.settings[key]=[];
-  S.settings[key].push({id:Date.now(),label,addr});
-  document.getElementById(pre+'-label').value='';
-  document.getElementById(pre+'-addr').value='';
-  persist(); renderSettings(); renderRouteSelector();
-  toast(`${label} added`);
-}
-function addHomeAddr() { addAltAddr('home'); }
-function addClubAddr() { addAltAddr('club'); }
-
 function editAltAddr(type, id) {
   const key = type==='home' ? 'homeAddrs' : 'clubAddrs';
   const a = (S.settings[key]||[]).find(x=>x.id===id);
