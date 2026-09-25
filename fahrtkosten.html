@@ -180,12 +180,12 @@ input[type=date]::-webkit-date-and-time-value { text-align:left; }
 
 /* ── SLIDE TO DRIVE ── */
 .slide { position:relative; height:60px; border-radius:100px; background:var(--p-soft); display:flex; align-items:center; justify-content:center; margin-top:15px; user-select:none; -webkit-user-select:none; overflow:hidden; transition:background-color .25s; }
-.slide .fill { position:absolute; left:0; top:0; bottom:0; width:60px; border-radius:100px; background:var(--p-mid); }
+.slide .fill { position:absolute; left:0; top:0; bottom:0; width:100%; border-radius:100px; background:var(--p-mid); transform:translateX(calc(-100% + 60px)); }
 .slide .txt { position:relative; font-weight:700; font-size:14.5px; color:var(--p); padding-left:46px; white-space:nowrap; transition:opacity .15s; pointer-events:none; }
 .slide .thumb { position:absolute; left:6px; top:6px; width:48px; height:48px; border-radius:50%; background:var(--p); color:var(--on-p); display:grid; place-items:center; cursor:grab; z-index:2; touch-action:none; box-shadow:0 6px 16px color-mix(in srgb, var(--p) 40%, transparent); }
 .slide .thumb:active { cursor:grabbing; }
 .slide .thumb:focus-visible { outline:3px solid var(--p-mid); outline-offset:2px; }
-.slide.snap .thumb, .slide.snap .fill { transition:transform .35s cubic-bezier(0.22,1,0.36,1), width .35s cubic-bezier(0.22,1,0.36,1); }
+.slide.snap .thumb, .slide.snap .fill { transition:transform .35s cubic-bezier(0.22,1,0.36,1); }
 .slide .thumb.nudge { animation:nudge .55s cubic-bezier(0.22,1,0.36,1); }
 @keyframes nudge { 0%,100% { transform:translateX(0); } 35% { transform:translateX(18px); } 65% { transform:translateX(5px); } }
 .slide.idle { background:var(--field); cursor:pointer; }
@@ -1082,7 +1082,7 @@ function initSlide() {
   const setX = v => {
     x = Math.max(0, Math.min(max(), v));
     thumb.style.transform = `translateX(${x}px)`;
-    fill.style.width = (x + 60) + 'px';
+    fill.style.transform = `translateX(calc(-100% + ${x + 60}px))`;
     txt.style.opacity = String(Math.max(0, 1 - x / max() * 1.6));
   };
   slideReset = () => { slide.classList.add('snap'); setX(0); txt.style.opacity = '1'; };
