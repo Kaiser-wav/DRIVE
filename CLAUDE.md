@@ -100,6 +100,10 @@ writes its km to `S.routeMemory` under a signature built by `routeSignature()`:
 - Members with `cameToMe` set are excluded (no detour → no effect on distance).
 - A member with no address falls back to their name, so crew identity still differentiates.
 
+`learnRoutesFromHistory()` rebuilds signatures from past trips (rebuilding the crew from names
+for trips without `setup`) and adds only routes memory doesn't know yet. `hydrate()` runs it once
+(`settings.routesFromHistory`); Settings → "Learn distances from history" (`relearnRoutes()`) runs it again.
+
 `applyAutoKm()` fills the km field from memory, but only while `kmSource` is `null` or
 `'auto'` — a number the user typed (`'manual'`) or picked from a preset (`'preset'`) is
 never overwritten. `kmSource` is module-level session state.
@@ -176,6 +180,10 @@ spared people = ride free, not counted in total_people
 - **Trip screen**: `.map-hero` (stylised street map from `renderRouteViz()`) with a floating `.route-card`, then `.main-card` overlapping it: crew pills with avatars → distance → price → **slide to drive** (`#slide`, `initSlide()`, `slideDone()`). Sliding, not tapping, is the primary action — no accidental logs.
 - **Nav**: floating dark capsule of 5 icon buttons (`nav`, fixed), active = accent circle.
 - **Settings** is all tap-to-edit rows plus one "+ Add …" row per list (`.srow`, `.addrow`) that opens a sheet (`openAddMember()`, `openAddPlace()`, `openAddPreset()`, `editMainPlace()`) — no permanently visible add forms.
+- **Route card** (`.route-card`) sits in the flow at the top of `.map-hero`; the hero grows under it when "Other start or destination" opens, and the drawing (`.route-viz`) stays pinned to the bottom 300px — so nothing below can be overlapped.
+- **History** rows (`.hrow`): direction icon · names + "Return · 21.7 km" · amount + date. Month headers (`.hmonth`) show trips and km.
+- **Sheets** all open/close through `showOverlay(id)` / `hideOverlay(id)` (slide-down close, page scroll lock via `html.locked`). `initSheetDrag()` adds pull-down-to-close; a new overlay needs an entry in `OVERLAY_CLOSE`.
+- **Swipe between screens** (`initScreenSwipe()`, nav order in `SCREEN_ORDER`). Anything with its own sideways gesture must opt out — `#slide`, inputs, or `data-noswipe`.
 - **Toasts** last 2.6s (5s with Undo, with a countdown bar), dismiss on tap, and plain ones clear on screen change.
 - **Chip states**: accent outline = paying passenger, orange = free ride, dashed accent = came to you but pays, grey = not in the car.
 - All colors are CSS variables in `:root` — never hardcode hex in new code. Old names (`--muted`, `--amber`, `--border`, `--cyan`, `--coral`) are kept as aliases.
@@ -192,6 +200,7 @@ spared people = ride free, not counted in total_people
 | `buildMapsUrl()` | Builds the Maps URL, or `null` if home/club addresses are missing |
 | `calcSplit(km)` | **Single source of truth for the split math** — used by preview, banner and `logTrip()` |
 | `routeSignature()` / `rememberRoute(km)` | Build the route key / store the learned km |
+| `learnRoutesFromHistory()` / `relearnRoutes()` | Backfill route memory from logged trips (once on load / from Settings) |
 | `applyAutoKm()` / `renderKmHint()` | Auto-fill km from memory / explain where the number came from |
 | `armPendingDrive()` / `restorePendingDrive()` / `renderPending()` | The open-Maps-then-log-on-return flow |
 | `repeatLastTrip()` | Restores the crew + km of the most recent trip in one tap |

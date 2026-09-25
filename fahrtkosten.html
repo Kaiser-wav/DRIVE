@@ -63,6 +63,10 @@ nav button:focus-visible { outline:2px solid var(--p-mid); outline-offset:2px; }
 .screen { display:none; padding:12px 16px calc(100px + env(safe-area-inset-bottom,0px)); max-width:500px; margin:0 auto; }
 .screen.active { display:block; animation:screenIn .28s cubic-bezier(0.2,0,0,1); }
 @keyframes screenIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+.screen.active.from-right { animation:fromRight .3s cubic-bezier(0.2,0,0,1); }
+.screen.active.from-left { animation:fromLeft .3s cubic-bezier(0.2,0,0,1); }
+@keyframes fromRight { from { opacity:0; transform:translateX(36px); } to { opacity:1; transform:none; } }
+@keyframes fromLeft { from { opacity:0; transform:translateX(-36px); } to { opacity:1; transform:none; } }
 .page-title { font-size:28px; font-weight:800; letter-spacing:-0.025em; margin:14px 4px 16px; }
 .label { font-size:12.5px; font-weight:700; color:var(--muted); margin:20px 4px 8px; }
 .card { background:var(--card); border-radius:24px; padding:16px; margin-bottom:10px; box-shadow:var(--shadow-sm); }
@@ -117,14 +121,15 @@ input[type=date]::-webkit-date-and-time-value { text-align:left; }
 
 /* ── TRIP: map hero + floating cards ── */
 .trip-screen { padding-top:0; }
-.map-hero { position:relative; height:300px; margin:0 -16px; overflow:hidden; background:var(--map-bg); }
-.route-viz { position:absolute; inset:0; cursor:pointer; }
+.map-hero { position:relative; min-height:300px; margin:0 -16px; padding:calc(10px + env(safe-area-inset-top,0px)) 12px 150px; overflow:hidden; background:var(--map-bg); }
+/* The drawing is laid out for 300px; when the route card grows, the map grows above it, under the card. */
+.route-viz { position:absolute; left:0; right:0; bottom:0; height:300px; cursor:pointer; }
 .route-viz svg { width:100%; height:100%; display:block; }
 .map-pill { position:absolute; bottom:58px; background:var(--card); color:var(--text); border-radius:100px; padding:7px 12px; font-size:12px; font-weight:700; box-shadow:var(--shadow-sm), 0 2px 8px rgba(0,19,21,0.1); display:flex; align-items:center; gap:6px; }
 .map-pill.km { left:14px; }
 .map-pill.open { right:14px; color:var(--p); }
 .fcard { background:var(--card); border-radius:26px; box-shadow:var(--shadow); }
-.route-card { position:absolute; left:12px; right:12px; top:calc(10px + env(safe-area-inset-top,0px)); padding:11px 11px 11px 15px; z-index:2; }
+.route-card { position:relative; padding:11px 11px 11px 15px; z-index:2; }
 .dir-btn { display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; -webkit-user-select:none; }
 .dir-endpoints { flex:1; min-width:0; display:grid; gap:7px; }
 .dir-line { display:flex; align-items:center; gap:9px; min-width:0; font-size:13.5px; }
@@ -241,6 +246,24 @@ input[type=date]::-webkit-date-and-time-value { text-align:left; }
 /* ── LISTS (log, settings) ── */
 .trip-row { display:flex; align-items:center; justify-content:space-between; padding:13px 0; border-top:1px solid var(--line); gap:12px; }
 .trip-row:first-child { border-top:none; }
+.hmonth { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:26px 6px 10px; }
+.hmonth:first-child { margin-top:4px; }
+.hmonth b { font-size:15px; font-weight:800; letter-spacing:-0.01em; }
+.hmonth small { font-size:12px; color:var(--muted); font-weight:500; }
+.hcard { padding:6px 16px; }
+.hrow { display:flex; align-items:center; gap:13px; padding:14px 0; border-top:1px solid var(--line); cursor:pointer; }
+.hrow:first-child { border-top:none; }
+.hico { width:38px; height:38px; border-radius:50%; display:grid; place-items:center; flex-shrink:0; background:var(--p-soft); color:var(--p); }
+.hico.back { background:var(--field); color:var(--text); }
+.hico.paid { background:var(--green-bg); color:var(--green); font-weight:800; font-size:15px; }
+.hmain { flex:1; min-width:0; }
+.hname { font-size:14.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hmeta { font-size:12.5px; color:var(--muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hmeta .free { color:var(--amber); font-weight:600; }
+.hend { text-align:right; flex-shrink:0; }
+.hamt { font-size:15px; font-weight:800; letter-spacing:-0.01em; }
+.hamt.paid { color:var(--green); }
+.hsub { font-size:11.5px; color:var(--muted); margin-top:3px; }
 .trip-names { font-size:14px; font-weight:600; margin-bottom:3px; }
 .trip-names.paid { color:var(--green); }
 .trip-meta { font-size:12px; color:var(--muted); }
@@ -325,10 +348,14 @@ input[type=date]::-webkit-date-and-time-value { text-align:left; }
 .hero-cap { font-size:12.5px; color:var(--muted); margin-top:6px; }
 
 /* ── SHEETS & MODALS ── */
-.overlay { display:none; position:fixed; inset:0; background:var(--overlay); z-index:200; align-items:flex-end; justify-content:center; }
+.overlay { display:none; position:fixed; inset:0; z-index:200; align-items:flex-end; justify-content:center; overscroll-behavior:contain; }
+.overlay::before { content:''; position:absolute; inset:0; background:var(--overlay); opacity:var(--dim,1); transition:opacity .24s ease; }
+.overlay.closing::before { opacity:0; }
+.overlay.dragging::before { transition:none; }
+html.locked, html.locked body { overflow:hidden; }
 .overlay.open { display:flex; animation:backdropIn .2s ease; }
-.modal { background:var(--card); border-radius:28px 28px 0 0; padding:10px 20px calc(28px + env(safe-area-inset-bottom,0px)); width:100%; max-width:500px; max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
-.modal::before { content:''; display:block; width:40px; height:5px; border-radius:5px; background:var(--av); margin:0 auto 18px; }
+.modal { background:var(--card); border-radius:28px 28px 0 0; padding:10px 20px calc(28px + env(safe-area-inset-bottom,0px)); width:100%; max-width:500px; max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; position:relative; will-change:transform; }
+.modal::before { content:''; display:block; width:40px; height:5px; border-radius:5px; background:var(--av); margin:0 auto 18px; cursor:grab; }
 .overlay.open .modal { animation:slideUp .32s cubic-bezier(0.22,1,0.36,1); }
 @keyframes slideUp { from { transform:translateY(60px); opacity:0; } to { transform:none; opacity:1; } }
 @keyframes backdropIn { from { opacity:0; } to { opacity:1; } }
@@ -543,6 +570,7 @@ html.theme-anim body, html.theme-anim .card, html.theme-anim .fcard, html.theme-
   <div class="label">Data</div>
   <div class="card">
     <button class="srow tap" onclick="location.href=location.pathname+'?demo'"><div class="t"><b>Try the app with demo data</b><small>A separate sandbox with 10 weeks of made-up trips. Your real data stays untouched.</small></div><span class="row-chev"><svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+    <button class="srow tap" onclick="relearnRoutes()"><div class="t"><b>Learn distances from history</b><small>Fills in the km of every crew combo you've already driven.</small></div></button>
     <button class="srow tap" id="forget-routes-btn" onclick="forgetRoutes()"><div class="t"><b class="danger">Forget learned distances</b><small id="forget-routes-sub"></small></div></button>
     <button class="srow tap" onclick="clearTrips()"><div class="t"><b class="danger">Clear history</b><small>Removes all trips and payments. Balances stay.</small></div></button>
     <button class="srow tap" onclick="zeroDebts()"><div class="t"><b class="danger">Zero out all debts</b><small>Sets every balance to €0.00.</small></div></button>
@@ -647,7 +675,7 @@ const STORE_KEY = DEMO ? 'carpool_demo' : 'carpool_v4';
 
 function persist() { localStorage.setItem(STORE_KEY, JSON.stringify(S)); }
 function hydrate() {
-  if (DEMO && !localStorage.getItem(STORE_KEY)) { S = demoData(); learnDemoRoutes(); persist(); }
+  if (DEMO && !localStorage.getItem(STORE_KEY)) { S = demoData(); learnRoutesFromHistory(); persist(); }
   const r = localStorage.getItem(STORE_KEY);
   if (r) try { const d=JSON.parse(r); S={...S,...d}; S.settings={...S.settings,...(d.settings||{})}; } catch(e){}
   if (!S.routeMemory) S.routeMemory = {};
@@ -657,8 +685,33 @@ function hydrate() {
   // Trips logged before `ts` existed carry their timestamp in the id.
   S.trips.forEach(t => { if (!t.ts) t.ts = t.id; });
   sortHistory();
+  // Route memory came after some trips were logged — learn those once.
+  if (!S.settings.routesFromHistory) { learnRoutesFromHistory(); S.settings.routesFromHistory = true; persist(); }
   applyTheme(S.settings.theme || 'light', false);
 }
+
+/* ── SWIPE BETWEEN SCREENS ── in nav order; things with their own sideways gesture opt out */
+const SCREEN_ORDER = [...document.querySelectorAll('nav button')].map(b => b.id.slice(4));
+(function initScreenSwipe() {
+  let x0, y0, t0, ok = false;
+  document.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    ok = e.touches.length === 1
+      && !document.querySelector('.overlay.open')
+      && !e.target.closest('input, textarea, select, #slide, nav, [data-noswipe]')
+      && t.clientX > 18 && t.clientX < innerWidth - 18;   // leave the edges to the browser's back gesture
+    x0 = t.clientX; y0 = t.clientY; t0 = Date.now();
+  }, { passive:true });
+  document.addEventListener('touchend', e => {
+    if (!ok) return;
+    ok = false;
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || Date.now() - t0 > 700) return;
+    const cur = SCREEN_ORDER.indexOf(document.querySelector('.screen.active').id.slice(2));
+    const next = SCREEN_ORDER[cur + (dx < 0 ? 1 : -1)];
+    if (next) showScreen(next, dx < 0 ? 'right' : 'left');
+  }, { passive:true });
+})();
 
 /* ── THEME ── */
 function getCSSVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
@@ -677,8 +730,9 @@ function applyTheme(t, save) {
   if (btnLight) btnLight.classList.toggle('active', t === 'light');
 }
 
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+function showScreen(id, from) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active', 'from-left', 'from-right'));
+  if (from) document.getElementById('s-'+id).classList.add('from-'+from);
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById('s-'+id).classList.add('active');
   document.getElementById('nav-'+id).classList.add('active');
@@ -768,16 +822,77 @@ function withUndo(msg, mutate, onUndo) {
   }}});
 }
 
+/* ── OVERLAYS ── every bottom sheet opens, closes, locks the page and swipes down the same way */
+const OVERLAY_CLOSE = {
+  'sheet-overlay': () => closeSheet(),
+  'chip-overlay':  () => closeChipModal(false),
+  'pay-overlay':   () => closePayModal(),
+};
+function lockPage() {
+  document.documentElement.classList.toggle('locked', !!document.querySelector('.overlay.open:not(.closing)'));
+}
+function showOverlay(id) {
+  const o = document.getElementById(id), m = o.querySelector('.modal');
+  clearTimeout(o._hide);
+  o.classList.remove('closing', 'dragging'); o.style.removeProperty('--dim');
+  m.style.transition = ''; m.style.transform = '';
+  o.classList.add('open');
+  lockPage();
+}
+function hideOverlay(id) {
+  const o = document.getElementById(id), m = o.querySelector('.modal');
+  if (!o.classList.contains('open') || o.classList.contains('closing')) return;
+  o.classList.remove('dragging'); o.style.removeProperty('--dim');
+  o.classList.add('closing');
+  m.style.transition = 'transform .24s cubic-bezier(0.4,0,1,1)';
+  m.style.transform = 'translateY(105%)';
+  lockPage();
+  o._hide = setTimeout(() => { o.classList.remove('open', 'closing'); m.style.transition = ''; m.style.transform = ''; }, 240);
+}
+// Pull a sheet down to close it — from the handle anywhere, from the content once it's scrolled to the top.
+function initSheetDrag(o) {
+  const m = o.querySelector('.modal');
+  let y0 = 0, t0 = 0, dy = 0, drag = false, armed = false;
+  m.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    y0 = e.touches[0].clientY; t0 = Date.now(); dy = 0; drag = false;
+    // Inputs keep their own gestures (text selection, sliders).
+    armed = m.scrollTop <= 0 && !e.target.closest('input, textarea, select');
+  }, { passive:true });
+  m.addEventListener('touchmove', e => {
+    if (!armed) return;
+    dy = e.touches[0].clientY - y0;
+    if (!drag && dy > 6 && m.scrollTop <= 0) { drag = true; o.classList.add('dragging'); m.style.transition = 'none'; }
+    if (!drag) { if (dy < 0) armed = false; return; }
+    e.preventDefault();
+    const d = Math.max(0, dy);
+    m.style.transform = `translateY(${d}px)`;
+    o.style.setProperty('--dim', Math.max(0, 1 - d / m.offsetHeight));
+  }, { passive:false });
+  m.addEventListener('touchend', () => {
+    if (!drag) return;
+    drag = false; armed = false;
+    const fast = dy / Math.max(1, Date.now() - t0) > 0.5;
+    if (dy > Math.min(140, m.offsetHeight * 0.3) || (fast && dy > 30)) { OVERLAY_CLOSE[o.id](); return; }
+    o.classList.remove('dragging'); o.style.removeProperty('--dim');
+    m.style.transition = 'transform .3s cubic-bezier(0.22,1,0.36,1)';
+    m.style.transform = '';
+  });
+  // The dimmed backdrop never scrolls the page behind it.
+  o.addEventListener('touchmove', e => { if (e.target === o) e.preventDefault(); }, { passive:false });
+}
+document.querySelectorAll('.overlay').forEach(initSheetDrag);
+
 /* ── SHEET ── one bottom sheet for edit forms, confirms and the person view */
 let sheetOnClose = null;
 function openSheet(html, onClose) {
   document.getElementById('sheet-body').innerHTML = html;
-  document.getElementById('sheet-overlay').classList.add('open');
+  showOverlay('sheet-overlay');
   document.getElementById('sheet-body').scrollTop = 0;
   sheetOnClose = onClose || null;
 }
 function closeSheet() {
-  document.getElementById('sheet-overlay').classList.remove('open');
+  hideOverlay('sheet-overlay');
   const f = sheetOnClose; sheetOnClose = null;
   if (f) f();
 }
@@ -974,6 +1089,42 @@ function rememberRoute(km) {
   const sig = routeSignature();
   const prev = S.routeMemory[sig] || {};
   S.routeMemory[sig] = { km, n: (prev.n||0)+1, ts: Date.now() };
+}
+
+// Learns every route in the trip history that memory doesn't know yet, oldest
+// first so the newest km wins. Routes already in memory are left alone — they
+// were learned live and may carry a correction. Returns how many were added.
+function learnRoutesFromHistory() {
+  const byName = n => (S.members.find(m=>m.name===n)||{}).id;
+  const found = {};
+  S.trips.slice().reverse().forEach(t => {
+    if (!(t.km > 0)) return;
+    let crew, ov, home = null, club = null;
+    if (t.setup) {
+      crew = t.setup.crew||[]; ov = t.setup.overrides||{}; home = t.setup.home; club = t.setup.club;
+    } else {
+      // Trips from before `setup` existed: rebuild the crew from the names.
+      ov = {};
+      crew = [...t.passengers, ...(t.spared||[])].map(byName);
+      (t.spared||[]).forEach(n => { const id = byName(n); if (id) ov[id] = { addr:null, cameToMe:'spare' }; });
+    }
+    // Someone since removed from the crew → the route can't be rebuilt.
+    if (!crew.length || crew.some(id => !S.members.some(m=>m.id===id))) return;
+    const sig = routeSignature(crew, ov, homeAddrFor(home), clubAddrFor(club));
+    const prev = found[sig] || { n:0 };
+    found[sig] = { km:t.km, n:prev.n+1, ts:t.ts||t.id };
+  });
+  let added = 0;
+  Object.entries(found).forEach(([sig, mem]) => { if (!S.routeMemory[sig]) { S.routeMemory[sig] = mem; added++; } });
+  return added;
+}
+function relearnRoutes() {
+  const before = Object.keys(S.routeMemory).length;
+  const copy = JSON.parse(JSON.stringify(S.routeMemory));
+  const added = learnRoutesFromHistory();
+  S.routeMemory = copy;   // measured on a copy — the real change goes through withUndo
+  if (!added) { toast(before ? 'Every route in your history is already learned' : 'No trips to learn from yet'); return; }
+  withUndo(`Learned ${added} route${added===1?'':'s'} from your history`, () => { learnRoutesFromHistory(); });
 }
 
 // Fills the km field from memory unless the user picked a number themselves.
@@ -1181,7 +1332,7 @@ function renderRouteViz(km) {
   const stops = [{ type: back ? 'club' : 'home' }, ...pickups.map(m => ({ type:'pickup', label:ini(m.name) })), { type: back ? 'home' : 'club' }];
 
   const W = 400, H = 300, n = stops.length;
-  const x0 = 58, x1 = W - 58, yTop = 104, yBot = H - 84;
+  const x0 = 58, x1 = W - 58, yTop = 100, yBot = H - 104;   // yBot clears the km pill
   stops.forEach((st, i) => {
     const t = i / (n - 1);
     st.x = Math.round(x0 + (x1 - x0) * t);
@@ -1242,7 +1393,7 @@ function openChipModal(id) {
   document.getElementById('cm-addr').value = chipModalTemp.addr;
   document.getElementById('btn-remove').style.display = chipModalTemp.wasChecked ? '' : 'none';
   updateCameStatus();
-  document.getElementById('chip-overlay').classList.add('open');
+  showOverlay('chip-overlay');
   if (!checkedIds.has(id)) checkedIds.add(id);
 }
 
@@ -1307,7 +1458,7 @@ function closeChipModal(confirm) {
       checkedIds.delete(chipModalId);
     }
   }
-  document.getElementById('chip-overlay').classList.remove('open');
+  hideOverlay('chip-overlay');
   chipModalId = null;
   renderTrip();
 }
@@ -1711,7 +1862,7 @@ async function copyText(t) {
 // Trips and payments in one timeline, newest first, one card per month.
 function renderLog() {
   const items = [
-    ...S.trips.map(t => ({ ts:t.ts||t.id, html:tripRowHTML(t) })),
+    ...S.trips.map(t => ({ ts:t.ts||t.id, trip:t, html:tripRowHTML(t) })),
     ...S.payments.map(p => ({ ts:p.ts, html:paymentRowHTML(p) }))
   ].sort((a,b) => b.ts - a.ts);
   document.getElementById('log-empty').style.display = items.length ? 'none' : 'block';
@@ -1721,37 +1872,48 @@ function renderLog() {
     if (!groups.length || groups[groups.length-1].key !== key) {
       const o = { month:'long' };
       if (d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
-      groups.push({ key, label:d.toLocaleDateString('en-GB', o), rows:[] });
+      groups.push({ key, label:d.toLocaleDateString('en-GB', o), rows:[], trips:0, km:0 });
     }
-    groups[groups.length-1].rows.push(i.html);
+    const g = groups[groups.length-1];
+    g.rows.push(i.html);
+    if (i.trip) { g.trips++; g.km += i.trip.km; }
   });
   document.getElementById('log-body').innerHTML = groups.map(g =>
-    `<div class="label">${g.label}</div><div class="card" style="padding-top:4px; padding-bottom:4px;">${g.rows.join('')}</div>`).join('');
+    `<div class="hmonth"><b>${g.label}</b><small>${g.trips ? `${g.trips} trip${g.trips===1?'':'s'} · ${Math.round(g.km)} km` : ''}</small></div>
+     <div class="card hcard">${g.rows.join('')}</div>`).join('');
 }
+
+const ICO_THERE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICO_BACK  = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8H4M7.5 4.5L4 8l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 function tripRowHTML(t) {
   const names = t.passengers.length ? esc(t.passengers.join(', ')) : 'Solo';
-  const sparedTxt = t.spared&&t.spared.length ? ` · <span style="color:var(--amber);">${esc(t.spared.join(', '))} free</span>` : '';
-  const dirTxt = t.dir ? ` &nbsp;·&nbsp; ${t.dir==='back' ? 'return' : 'outbound'}` : '';
-  return `<div class="trip-row tap" onclick="editTrip(${t.id})">
-    <div style="flex:1; min-width:0;">
-      <div class="trip-names">${names}${sparedTxt}</div>
-      <div class="trip-meta">${fmtDate(t.ts||t.id)} &nbsp;·&nbsp; ${t.km} km &nbsp;·&nbsp; €${t.totalCost.toFixed(2)} fuel${dirTxt}</div>
+  const back = t.dir === 'back';
+  const dirTxt = t.dir ? (back ? 'Return' : 'Outbound') : 'Trip';
+  const free = t.spared&&t.spared.length ? ` · <span class="free">${esc(t.spared.join(', '))} free</span>` : '';
+  return `<div class="hrow tap" onclick="editTrip(${t.id})">
+    <div class="hico ${back?'back':''}">${back ? ICO_BACK : ICO_THERE}</div>
+    <div class="hmain">
+      <div class="hname">${names}</div>
+      <div class="hmeta">${dirTxt} · ${t.km} km${free}</div>
     </div>
-    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0; align-self:center;">
-      <div class="trip-amt">€${t.perPerson.toFixed(2)}</div>${CHEV}
+    <div class="hend">
+      <div class="hamt">€${t.perPerson.toFixed(2)}</div>
+      <div class="hsub">${fmtDate(t.ts||t.id)}</div>
     </div>
   </div>`;
 }
 
 function paymentRowHTML(p) {
-  return `<div class="trip-row tap" onclick="editPayment(${p.id})">
-    <div style="flex:1; min-width:0;">
-      <div class="trip-names paid">${esc(p.name)} paid</div>
-      <div class="trip-meta">${fmtDate(p.ts)} &nbsp;·&nbsp; payment</div>
+  return `<div class="hrow tap" onclick="editPayment(${p.id})">
+    <div class="hico paid">€</div>
+    <div class="hmain">
+      <div class="hname">${esc(p.name)} paid</div>
+      <div class="hmeta">Payment</div>
     </div>
-    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0; align-self:center;">
-      <div class="trip-amt paid">+€${p.amt.toFixed(2)}</div>${CHEV}
+    <div class="hend">
+      <div class="hamt paid">+€${p.amt.toFixed(2)}</div>
+      <div class="hsub">${fmtDate(p.ts)}</div>
     </div>
   </div>`;
 }
@@ -2238,7 +2400,7 @@ function openPayModal(name) {
   document.getElementById('pay-pills').innerHTML=uniq.map(v=>
     `<div class="pay-pill" onclick="selPill(this,${v})">€${v.toFixed(2)}</div>`).join('');
   document.getElementById('pay-custom').value='';
-  document.getElementById('pay-overlay').classList.add('open');
+  showOverlay('pay-overlay');
 }
 function selPill(el,val) {
   document.querySelectorAll('.pay-pill').forEach(p=>p.classList.remove('sel'));
@@ -2257,7 +2419,7 @@ function applyPayment() {
   });
 }
 function closePayModal() {
-  document.getElementById('pay-overlay').classList.remove('open');
+  hideOverlay('pay-overlay');
   payModalName=null;
 }
 document.getElementById('pay-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closePayModal();});
@@ -2475,14 +2637,6 @@ function demoData() {
   trips.sort((a,b)=>b.ts-a.ts); payments.sort((a,b)=>b.ts-a.ts);
   return { members, trips, payments, debts, settings, routeMemory:{}, pendingDrive:null,
     presets:[{ id:401, name:'Straight to the hall', km:12.4 }, { id:402, name:'Away hall', km:27 }] };
-}
-// Learn the demo routes the same way logging does — needs the demo data live in S.
-function learnDemoRoutes() {
-  S.trips.slice().reverse().forEach(t => {
-    const sig = routeSignature(t.setup.crew, t.setup.overrides, homeAddrFor(t.setup.home), clubAddrFor(t.setup.club));
-    const prev = S.routeMemory[sig] || { n:0 };
-    S.routeMemory[sig] = { km:t.km, n:prev.n+1, ts:t.ts };
-  });
 }
 function resetDemo() { localStorage.removeItem('carpool_demo'); location.reload(); }
 
