@@ -146,7 +146,8 @@ input[type=date]::-webkit-date-and-time-value { text-align:left; }
 #route-selector { border-top:1px solid var(--line); margin-top:11px; padding-top:10px; }
 .rs-label { font-size:11px; font-weight:700; color:var(--muted); margin:0 0 6px 2px; }
 #route-selector .chip { font-size:12.5px; padding:6px 12px 6px 4px; }
-#rs-club-row { margin-top:9px; }
+#route-selector { gap:9px; }
+#route-selector .chip.add-once { background:none; color:var(--p); outline:1.5px dashed var(--p-mid); outline-offset:-1.5px; padding:6px 12px; }
 .rs-toggle { display:block; margin:9px 0 0 18px; background:none; border:none; padding:2px 0; color:var(--p); font-size:12px; font-weight:700; cursor:pointer; }
 
 .trip-stack { position:relative; margin-top:-46px; z-index:3; }
@@ -167,6 +168,7 @@ input[type=date]::-webkit-date-and-time-value { text-align:left; }
 .km-field span { font-weight:600; color:var(--muted); font-size:14px; }
 .km-hint { display:none; font-size:12px; color:var(--p); margin-top:8px; line-height:1.45; font-weight:500; }
 .km-hint.dim { color:var(--muted); }
+.km-measure { color:var(--p); font-weight:700; cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
 .preset-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
 .preset-chips:empty { display:none; }
 .preset-chip { padding:6px 12px; border-radius:100px; background:var(--field); font-size:12px; font-weight:600; color:var(--muted2); cursor:pointer; transition:transform .2s; }
@@ -660,6 +662,7 @@ let S = {
   presets:[],
   payments:[],         // { id, ts, name, amt } — newest first
   routeMemory:{},      // routeSignature -> { km, n, ts }
+  geoCache:{},         // lowercased address -> [lon, lat], so each address is looked up once
   pendingDrive:null    // snapshot armed when Maps is opened, waiting to be logged
 };
 
@@ -670,8 +673,10 @@ let chipModalTemp = {};
 let payModalName = null;
 let tripHome = null;
 let tripClub = null;
+let tripHomeOnce = null;  // one-time start address typed on the trip screen (not saved as a place)
+let tripClubOnce = null;  // one-time destination, e.g. an away game at a new hall
 let tripDirection = 'there';
-let kmSource = null;   // null | 'auto' | 'manual' | 'preset'
+let kmSource = null;   // null | 'auto' | 'manual' | 'preset' | 'route'
 let returnPrompt = null;  // session-only nudge to log the way back
 let statsRange = 'month'; // 'week' | 'month' | 'all' — stats screen
 let chartSel = null;      // selected week index in the stats chart (null = latest)
@@ -1009,6 +1014,8 @@ function repeatLastTrip() {
     });
     tripHome = (S.settings.homeAddrs||[]).some(h=>h.id===last.setup.home) ? last.setup.home : null;
     tripClub = (S.settings.clubAddrs||[]).some(c=>c.id===last.setup.club) ? last.setup.club : null;
+    tripHomeOnce = last.setup.homeOnce || null;
+    tripClubOnce = last.setup.clubOnce || null;
   } else {
     // Trips logged before snapshots existed only know names.
     (last.passengers||[]).forEach(n => {
@@ -1043,6 +1050,7 @@ function flipDirection() {
     el.classList.add('label-swapping');
     el.addEventListener('animationend', () => el.classList.remove('label-swapping'), { once: true });
   });
+  renderRouteSelector();
   updateDirectionBtn();
   updatePreview();
 }
@@ -1111,9 +1119,10 @@ function learnRoutesFromHistory() {
   const found = {};
   S.trips.slice().reverse().forEach(t => {
     if (!(t.km > 0)) return;
-    let crew, ov, home = null, club = null;
+    let crew, ov, home = null, club = null, homeOnce = null, clubOnce = null;
     if (t.setup) {
       crew = t.setup.crew||[]; ov = t.setup.overrides||{}; home = t.setup.home; club = t.setup.club;
+      homeOnce = t.setup.homeOnce; clubOnce = t.setup.clubOnce;
     } else {
       // Trips from before `setup` existed: rebuild the crew from the names.
       ov = {};
@@ -1122,7 +1131,7 @@ function learnRoutesFromHistory() {
     }
     // Someone since removed from the crew → the route can't be rebuilt.
     if (!crew.length || crew.some(id => !S.members.some(m=>m.id===id))) return;
-    const sig = routeSignature(crew, ov, homeAddrFor(home), clubAddrFor(club));
+    const sig = routeSignature(crew, ov, homeOnce || homeAddrFor(home), clubOnce || clubAddrFor(club));
     const prev = found[sig] || { n:0 };
     found[sig] = { km:t.km, n:prev.n+1, ts:t.ts||t.id };
   });
@@ -1140,29 +1149,118 @@ function relearnRoutes() {
 }
 
 // Fills the km field from memory unless the user picked a number themselves.
+// Learned km wins (it's what you actually drove); otherwise the fastest route
+// is measured online and filled in as 'route'.
 function applyAutoKm() {
   const input = document.getElementById('km-input');
   if (kmSource === 'manual' || kmSource === 'preset') return;
-  if (!checkedIds.size) { if (kmSource==='auto') { input.value=''; kmSource=null; } return; }
+  const clear = () => { if (kmSource==='auto' || kmSource==='route') { input.value=''; kmSource=null; } };
+  if (!checkedIds.size) { clear(); return; }
+  const key = routeKey();
+  const got = key && routeFetch.results[key];
+  if (kmSource === 'route' && got && got.km) { input.value = got.km; return; }   // measured on request
   const mem = S.routeMemory[routeSignature()];
-  if (mem) { input.value = mem.km; kmSource = 'auto'; }
-  else if (kmSource === 'auto') { input.value = ''; kmSource = null; }
+  if (mem) { input.value = mem.km; kmSource = 'auto'; return; }
+  if (got && got.km) { input.value = got.km; kmSource = 'route'; return; }
+  clear();
+  if (key && !got) measureRoute();
+}
+
+/* ── ROUTE MEASURING ── geocode each address (OpenStreetMap Nominatim, Photon as
+   fallback, cached in S.geoCache) and ask OSRM for the fastest driving route. */
+const routeFetch = { results:{}, busy:null };   // routeKey -> { km } | { error }
+// Same key both ways — there and back are the same distance.
+function routeKey() {
+  const r = routeStops();
+  if (!r) return null;
+  const k = [r.origin, ...r.waypoints, r.dest].map(normAddr);
+  return (tripDirection === 'back' ? k.reverse() : k).join(' → ');
+}
+
+let geoLast = 0;
+async function geocode(addr) {
+  const k = normAddr(addr);
+  if (!S.geoCache) S.geoCache = {};
+  if (S.geoCache[k]) return S.geoCache[k];
+  // Nominatim asks for at most one request per second.
+  const wait = geoLast + 1100 - Date.now();
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  geoLast = Date.now();
+  let ll = null;
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`);
+    const j = await res.json();
+    if (j[0]) ll = [+j[0].lon, +j[0].lat];
+  } catch (e) {}
+  if (!ll) {
+    try {
+      const res = await fetch(`https://photon.komoot.io/api/?limit=1&q=${encodeURIComponent(addr)}`);
+      const j = await res.json();
+      if (j.features && j.features[0]) ll = j.features[0].geometry.coordinates;
+    } catch (e) {}
+  }
+  if (ll) { S.geoCache[k] = ll; persist(); }
+  return ll;
+}
+
+async function measureRoute(force) {
+  const r = routeStops(), key = routeKey();
+  if (!r) return;
+  if (force) { delete routeFetch.results[key]; if (kmSource==='auto' || kmSource==='manual' || kmSource==='preset') kmSource = null; }
+  if (routeFetch.busy === key) return;
+  routeFetch.busy = key;
+  renderKmHint();
+  let out;
+  try {
+    const stops = [r.origin, ...r.waypoints, r.dest];
+    const pts = [];
+    for (const a of stops) {
+      const ll = await geocode(a);
+      if (!ll) throw { notFound: a };
+      pts.push(ll);
+    }
+    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${pts.map(p=>p.join(',')).join(';')}?overview=false`);
+    const j = await res.json();
+    if (j.code !== 'Ok' || !j.routes[0]) throw {};
+    out = { km: Math.round(j.routes[0].distance/100)/10, mins: Math.round(j.routes[0].duration/60) };
+  } catch (e) {
+    out = { error: e && e.notFound ? `Couldn't find “${shortAddr(e.notFound)}” on the map` : 'Couldn’t measure the route — offline?' };
+  }
+  routeFetch.results[key] = out;
+  if (routeFetch.busy === key) routeFetch.busy = null;
+  // Only fill in if the trip still has that route and nobody typed a number meanwhile.
+  if (routeKey() === key && out.km && (kmSource === null || kmSource === 'route')) {
+    document.getElementById('km-input').value = out.km;
+    kmSource = 'route';
+  }
+  updatePreview();
 }
 
 function renderKmHint() {
   const el = document.getElementById('km-hint');
   const mem = checkedIds.size ? S.routeMemory[routeSignature()] : null;
   const km = parseFloat(document.getElementById('km-input').value);
-  if (mem && kmSource === 'auto') {
-    el.className = 'km-hint';
-    el.style.display = 'block';
-    el.textContent = mem.n
+  const key = routeKey(), got = key && routeFetch.results[key];
+  const stops = routeStops();
+  const skipped = stops && stops.missing.length ? ` · ${esc(stops.missing.join(', '))} ha${stops.missing.length===1?'s':'ve'} no address, not included` : '';
+  const measure = key ? ` · <a class="km-measure" onclick="measureRoute(true)">measure route</a>` : '';
+  const show = (cls, html) => { el.className = cls; el.style.display = 'block'; el.innerHTML = html; };
+  if (key && routeFetch.busy === key) {
+    show('km-hint dim', 'Measuring the fastest route…');
+  } else if (mem && kmSource === 'auto') {
+    show('km-hint', (mem.n
       ? `↻ Auto-filled from ${mem.n} previous trip${mem.n===1?'':'s'} on this route — type over it to correct`
-      : `↻ Filled in from your saved route — type over it to correct`;
+      : `↻ Filled in from your saved route — type over it to correct`) + measure);
+  } else if (got && got.km && kmSource === 'route') {
+    show('km-hint', `Fastest route by car: ${got.km} km, about ${got.mins} min — type over it to correct${skipped}`);
   } else if (mem && km > 0 && Math.abs(mem.km - km) > 0.01) {
-    el.className = 'km-hint dim';
-    el.style.display = 'block';
-    el.textContent = `Last time this route was ${mem.km} km`;
+    show('km-hint dim', `Last time this route was ${mem.km} km` + measure);
+  } else if (got && got.error && !(km > 0)) {
+    show('km-hint dim', `${esc(got.error)} — type the km yourself · <a class="km-measure" onclick="measureRoute(true)">try again</a>`);
+  } else if (got && got.km && km > 0 && Math.abs(got.km - km) > 0.05) {
+    show('km-hint dim', `Fastest route is ${got.km} km · <a class="km-measure" onclick="usePreset(${got.km}); kmSource='route'; updatePreview();">use that</a>`);
+  } else if (checkedIds.size && key && !(km > 0)) {
+    show('km-hint dim', `<a class="km-measure" onclick="measureRoute(true)">Measure the fastest route</a>`);
   } else {
     el.style.display = 'none';
   }
@@ -1645,27 +1743,36 @@ function clubAddrFor(id) {
   if (id) { const c=(S.settings.clubAddrs||[]).find(c=>c.id===id); if(c) return c.addr; }
   return S.settings.clubAddr;
 }
-function activeTripHome() { return homeAddrFor(tripHome); }
-function activeTripClub() { return clubAddrFor(tripClub); }
+function activeTripHome() { return tripHomeOnce || homeAddrFor(tripHome); }
+function activeTripClub() { return tripClubOnce || clubAddrFor(tripClub); }
 
 /* ── MAPS ── */
 const MAPS_ICON = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0;margin-right:8px;vertical-align:-1px"><path d="M1.5 11.5L11.5 1.5M11.5 1.5H4.5M11.5 1.5V8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-function buildMapsUrl() {
+// The drive in order: start, pickups, destination. `missing` = pickups with no
+// address, who can't be part of the route. null if home/club aren't set.
+function routeStops() {
   const home = activeTripHome(), club = activeTripClub();
   if (!home || !club) return null;
   const isBack = tripDirection === 'back';
-  const origin = isBack ? club : home;
-  const dest   = isBack ? home : club;
-  const enc = s => encodeURIComponent(s);
+  const missing = [];
   const waypoints = [...checkedIds].map(id => {
     const m = S.members.find(m=>m.id===id);
     if (!m) return null;
     const ov = tripOverrides[id]||{};
     if (ov.cameToMe) return null;
+    if (!(ov.addr || m.addr)) missing.push(m.name);
     return ov.addr || m.addr || '';
   }).filter(Boolean);
   if (isBack) waypoints.reverse();
+  return { origin: isBack ? club : home, dest: isBack ? home : club, waypoints, missing };
+}
+
+function buildMapsUrl() {
+  const r = routeStops();
+  if (!r) return null;
+  const { origin, dest, waypoints } = r;
+  const enc = s => encodeURIComponent(s);
   let url = `https://www.google.com/maps/dir/?api=1&origin=${enc(origin)}&destination=${enc(dest)}&travelmode=driving`;
   if (waypoints.length) url += `&waypoints=${waypoints.map(enc).join('|')}`;
   return url;
@@ -1706,6 +1813,8 @@ function armPendingDrive() {
     direction: tripDirection,
     home: tripHome,
     club: tripClub,
+    homeOnce: tripHomeOnce,
+    clubOnce: tripClubOnce,
     crew: [...checkedIds],
     overrides: JSON.parse(JSON.stringify(tripOverrides))
   };
@@ -1721,6 +1830,8 @@ function restorePendingDrive() {
   tripOverrides = p.overrides || {};
   tripHome = p.home != null ? p.home : null;
   tripClub = p.club != null ? p.club : null;
+  tripHomeOnce = p.homeOnce || null;
+  tripClubOnce = p.clubOnce || null;
   tripDirection = p.direction || 'there';
   if (p.km) { document.getElementById('km-input').value = p.km; kmSource = p.kmSource || 'manual'; }
 }
@@ -1789,12 +1900,14 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) rend
 function fuelPerKm() { return (parseFloat(S.settings.consumption)||7.5) * (parseFloat(S.settings.gasPrice)||1.79) / 100; }
 
 function snapshotSession() {
-  return { crew:[...checkedIds], overrides:clone(tripOverrides), home:tripHome, club:tripClub, dir:tripDirection,
+  return { crew:[...checkedIds], overrides:clone(tripOverrides), home:tripHome, club:tripClub,
+           homeOnce:tripHomeOnce, clubOnce:tripClubOnce, dir:tripDirection,
            km:document.getElementById('km-input').value, kmSource, date:tripDate };
 }
 function restoreSession(x) {
   checkedIds = new Set(x.crew.filter(id => S.members.some(m=>m.id===id)));
   tripOverrides = x.overrides; tripHome = x.home; tripClub = x.club; tripDirection = x.dir;
+  tripHomeOnce = x.homeOnce || null; tripClubOnce = x.clubOnce || null;
   document.getElementById('km-input').value = x.km; kmSource = x.kmSource; tripDate = x.date;
 }
 
@@ -1820,7 +1933,8 @@ function logTrip() {
     // the rates this trip was priced at, so editing it later doesn't reprice it
     rates: { fuelPerKm: fuelPerKm(), surchPerKm: parseFloat(S.settings.surcharge)||0 },
     // everything "Same as last time" needs to rebuild this trip exactly
-    setup: { crew:[...checkedIds], overrides:clone(tripOverrides), home:tripHome, club:tripClub }
+    setup: { crew:[...checkedIds], overrides:clone(tripOverrides), home:tripHome, club:tripClub,
+             ...(tripHomeOnce && { homeOnce:tripHomeOnce }), ...(tripClubOnce && { clubOnce:tripClubOnce }) }
   });
   sortHistory();
   paying.forEach(p => { S.debts[p.name] = +((S.debts[p.name]||0)+perPass).toFixed(2); });
@@ -1832,7 +1946,7 @@ function logTrip() {
   returnPrompt = tripDirection === 'there' ? {
     crew: [...checkedIds],
     overrides: clone(tripOverrides),
-    km, home: tripHome, club: tripClub, date: tripDate,
+    km, home: tripHome, club: tripClub, homeOnce: tripHomeOnce, clubOnce: tripClubOnce, date: tripDate,
     names: paying.concat(spared).map(p=>p.name),
     from: activeTripHome() ? shortAddr(activeTripHome()) : 'Home',
     to:   activeTripClub() ? shortAddr(activeTripClub()) : 'Club'
@@ -1842,6 +1956,9 @@ function logTrip() {
   tripOverrides = {};
   tripHome = null;
   tripClub = null;
+  tripHomeOnce = null;
+  tripClubOnce = null;
+  rsOpen = false;
   tripDate = null;
   kmSource = null;
   document.getElementById('km-input').value='';
@@ -1883,6 +2000,8 @@ function setupReturn() {
   tripDirection = 'back';
   tripHome = r.home;
   tripClub = r.club;
+  tripHomeOnce = r.homeOnce || null;
+  tripClubOnce = r.clubOnce || null;
   tripDate = r.date || null;
   checkedIds = new Set(r.crew.filter(id => S.members.some(m=>m.id===id)));
   tripOverrides = r.overrides;
@@ -2708,54 +2827,90 @@ function closePayModal() {
 document.getElementById('pay-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closePayModal();});
 document.getElementById('sheet-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSheet();});
 
-/* ── ROUTE SELECTOR ── */
+/* ── ROUTE SELECTOR ──
+   Pick a saved start/destination, or type a one-time address ("Somewhere
+   else") for an away game — used for this trip (and its way back) only. */
 function renderRouteSelector() {
-  const homeAddrs = S.settings.homeAddrs||[];
-  const clubAddrs = S.settings.clubAddrs||[];
   const sel = document.getElementById('route-selector');
   const toggle = document.getElementById('rs-toggle');
   // Collapsed by default so the card doesn't cover the map; the chosen
   // endpoints stay visible in the card either way.
-  const has = homeAddrs.length || clubAddrs.length;
-  const open = has && rsOpen;
-  toggle.style.display = has ? '' : 'none';
-  toggle.textContent = open ? 'Done' : 'Other start or destination';
-  if (!open) { sel.style.display='none'; return; }
+  toggle.style.display = '';
+  toggle.textContent = rsOpen ? 'Done' : 'Other start or destination';
+  if (!rsOpen) { sel.style.display='none'; return; }
   sel.style.display='';
 
-  const homeRow = document.getElementById('rs-home-row');
-  if (homeAddrs.length) {
-    homeRow.style.display='';
-    const all = [{ id:null, label: S.settings.homeAddr ? shortAddr(S.settings.homeAddr) : 'Default' }, ...homeAddrs.map(h=>({id:h.id,label:h.label}))];
-    document.getElementById('home-chips').innerHTML = all.map(h=>
-      `<div class="chip ${tripHome===h.id?'on':''}" onclick="selectTripAddr('home',${h.id===null?'null':h.id})"><span class="pip"></span>${esc(h.label)}</div>`
-    ).join('');
-  } else {
-    homeRow.style.display='none';
-  }
-
-  const clubRow = document.getElementById('rs-club-row');
-  if (clubAddrs.length) {
-    clubRow.style.display='';
-    const all = [{ id:null, label: S.settings.clubAddr ? shortAddr(S.settings.clubAddr) : 'Default' }, ...clubAddrs.map(c=>({id:c.id,label:c.label}))];
-    document.getElementById('club-chips').innerHTML = all.map(c=>
-      `<div class="chip ${tripClub===c.id?'on':''}" onclick="selectTripAddr('club',${c.id===null?'null':c.id})"><span class="pip"></span>${esc(c.label)}</div>`
-    ).join('');
-  } else {
-    clubRow.style.display='none';
-  }
+  const row = (type, list, main, current, once) => {
+    const all = [{ id:null, label: main ? shortAddr(main) : (type==='home' ? 'Home' : 'Club') }, ...(list||[]).map(x=>({ id:x.id, label:x.label }))];
+    return all.map(x =>
+      `<div class="chip ${!once && current===x.id?'on':''}" onclick="selectTripAddr('${type}',${x.id===null?'null':x.id})"><span class="pip"></span>${esc(x.label)}</div>`
+    ).join('')
+    + (once ? `<div class="chip on" onclick="openOnceAddr('${type}')" title="${esc(once)}"><span class="pip"></span>${esc(shortAddr(once))} <span class="chip-badge">once</span></div>` : '')
+    + `<div class="chip add-once" onclick="openOnceAddr('${type}')">+ Somewhere else</div>`;
+  };
+  document.getElementById('home-chips').innerHTML = row('home', S.settings.homeAddrs, S.settings.homeAddr, tripHome, tripHomeOnce);
+  document.getElementById('club-chips').innerHTML = row('club', S.settings.clubAddrs, S.settings.clubAddr, tripClub, tripClubOnce);
+  // Rows follow the drive: on the way back the hall is where you start.
+  const back = tripDirection === 'back';
+  document.querySelector('#rs-home-row .rs-label').textContent = back ? 'To' : 'From';
+  document.querySelector('#rs-club-row .rs-label').textContent = back ? 'From' : 'To';
+  sel.style.display = 'flex';
+  sel.style.flexDirection = back ? 'column-reverse' : 'column';
 }
 
 let rsOpen = false;
 function openRouteSelector() { rsOpen = !rsOpen; renderRouteSelector(); }
 
-function selectTripAddr(type, id) {
-  if (type==='home') tripHome = id;
-  else tripClub = id;
+function routeChanged() {
   renderRouteSelector();
   updateDirectionBtn();
   applyAutoKm();
   updatePreview();
+}
+
+function selectTripAddr(type, id) {
+  if (type==='home') { tripHome = id; tripHomeOnce = null; }
+  else { tripClub = id; tripClubOnce = null; }
+  routeChanged();
+}
+
+// A one-time address: nothing is added to Settings unless a name is given.
+function openOnceAddr(type) {
+  const cur = type==='home' ? tripHomeOnce : tripClubOnce;
+  const isHome = type==='home';
+  openSheet(`
+    <div class="modal-title">${isHome ? 'Start somewhere else' : 'Drive somewhere else'}</div>
+    <div class="modal-sub">Just for this trip and its way back — ${isHome ? 'your usual start' : 'the usual hall'} stays as it is.</div>
+    <div class="igroup"><label>Address</label><input type="text" id="oa-addr" value="${esc(cur||'')}" placeholder="${isHome ? 'e.g. Bahnhofstraße 5, Homburg' : 'e.g. Sporthalle Nord, Merzig'}" /></div>
+    <div class="igroup"><label>Name — only if you'll go there again</label><input type="text" id="oa-label" placeholder="${isHome ? "e.g. Parents' place" : 'e.g. Away hall Merzig'}" /></div>
+    <hr>
+    <div style="display:flex; gap:8px;">
+      ${cur ? '<button class="btn danger" id="oa-clear">Remove</button>' : ''}
+      <div style="flex:1;"></div>
+      <button class="btn ghost" onclick="closeSheet()">Cancel</button>
+      <button class="btn coral" id="oa-save">Use it</button>
+    </div>`);
+  const addrEl = document.getElementById('oa-addr'), labelEl = document.getElementById('oa-label');
+  const btn = document.getElementById('oa-save');
+  labelEl.oninput = () => { btn.textContent = labelEl.value.trim() ? 'Save & use' : 'Use it'; };
+  btn.onclick = () => {
+    const addr = addrEl.value.trim(), label = labelEl.value.trim();
+    if (!addr) { toast('Type an address', { error:true }); addrEl.focus(); return; }
+    closeSheet();
+    if (label) {
+      // Named → becomes a saved place (undoable), and is picked for this trip.
+      const key = isHome ? 'homeAddrs' : 'clubAddrs', id = Date.now();
+      if (isHome) { tripHome = id; tripHomeOnce = null; } else { tripClub = id; tripClubOnce = null; }
+      withUndo(`${label} saved`, () => { if (!S.settings[key]) S.settings[key]=[]; S.settings[key].push({ id, label, addr }); },
+        () => { if (isHome) tripHome = null; else tripClub = null; });
+    } else {
+      if (isHome) { tripHomeOnce = addr; tripHome = null; } else { tripClubOnce = addr; tripClub = null; }
+      routeChanged();
+    }
+  };
+  const clr = document.getElementById('oa-clear');
+  if (clr) clr.onclick = () => { closeSheet(); selectTripAddr(type, null); };
+  setTimeout(() => addrEl.focus(), 350);
 }
 
 /* ── ALT ADDRESSES ── */

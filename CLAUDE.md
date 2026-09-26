@@ -18,7 +18,7 @@ A single-file HTML app for splitting driving costs between a regular crew (volle
 - Pure HTML + CSS + vanilla JS — no frameworks, no npm, no bundler
 - Google Fonts loaded via CDN: Onest (everything)
 - `localStorage` key: `carpool_v4` — all state persists here
-- No external API calls — everything runs client-side
+- Only external calls: route measuring — OpenStreetMap Nominatim (Photon fallback) for geocoding, OSRM demo server for the fastest driving route. No keys. If they fail, the app still works; km is typed or learned
 
 ---
 
@@ -38,7 +38,7 @@ S = {
     spared: string[],       // names of passengers who rode free
     dir: 'there'|'back',    // which leg (absent on trips logged before this existed)
     ts: number,             // epoch ms — hydrate() backfills it from `id` on old trips
-    setup: { crew: number[], overrides: tripOverrides, home, club }, // for "Same as last time"
+    setup: { crew: number[], overrides: tripOverrides, home, club, homeOnce?, clubOnce? }, // for "Same as last time"
     rates: { fuelPerKm: number, surchPerKm: number }  // priced-at rates; tripRates() derives them for old trips
   }],
   payments: [{ id: number, ts: number, name: string, amt: number }],  // newest first
@@ -55,6 +55,7 @@ S = {
 
   // learned distances — see "Auto distance" below
   routeMemory: { [signature: string]: { km: number, n: number, ts: number } },
+  geoCache: { [lowercasedAddr: string]: [lon, lat] },   // each address geocoded once
 
   // set when Maps is opened, cleared when the trip is logged or discarded
   pendingDrive: null | {
@@ -112,6 +113,20 @@ by hand have `n: 0` (hint reads "Filled in from your saved route").
 `applyAutoKm()` fills the km field from memory, but only while `kmSource` is `null` or
 `'auto'` — a number the user typed (`'manual'`) or picked from a preset (`'preset'`) is
 never overwritten. `kmSource` is module-level session state.
+
+## One-time places
+"Other start or destination" → **+ Somewhere else** (`openOnceAddr(type)`) sets `tripHomeOnce` /
+`tripClubOnce` (session-only strings) for an away game without touching Settings. `activeTripHome()` /
+`activeTripClub()` prefer them. They ride along into `setup.homeOnce/clubOnce`, the pending drive, the
+return prompt and undo snapshots, and are cleared after a trip is logged. Typing a name in that sheet
+saves it as a real place instead.
+
+## Measured distance
+When memory has no km for the route, `applyAutoKm()` calls `measureRoute()`: `geocode()` each stop from
+`routeStops()` (1 req/s, cached in `S.geoCache`), then OSRM → fastest route km, filled in with
+`kmSource = 'route'`. Results are cached per session in `routeFetch.results` by `routeKey()` (same key both
+directions). Learned memory beats a measurement; "measure route" in the hint forces one. Pickups with no
+address are left out and named in the hint.
 
 ## Trip screen layout
 The screen reads top to bottom as **set up → see the outcome → act**:
@@ -207,7 +222,9 @@ spared people = ride free, not counted in total_people
 | `routeSignature()` / `rememberRoute(km)` | Build the route key / store the learned km |
 | `learnRoutesFromHistory()` / `relearnRoutes()` | Backfill route memory from logged trips (once on load / from Settings) |
 | `renderRoutesList()` / `openRouteSheet()` / `saveRoute()` / `deleteRoute()` | Learned distances in Settings: view, add, edit, delete |
-| `applyAutoKm()` / `renderKmHint()` | Auto-fill km from memory / explain where the number came from |
+| `applyAutoKm()` / `renderKmHint()` | Auto-fill km from memory or a measured route / explain where the number came from |
+| `routeStops()` / `measureRoute(force)` / `geocode(addr)` | Ordered stops (shared with `buildMapsUrl()`) / fetch fastest-route km |
+| `openOnceAddr(type)` / `selectTripAddr(type,id)` | One-time start/destination / pick a saved one |
 | `armPendingDrive()` / `restorePendingDrive()` / `renderPending()` | The open-Maps-then-log-on-return flow |
 | `repeatLastTrip()` | Restores the crew + km of the most recent trip in one tap |
 | `setupReturn()` / `dismissReturn()` / `renderReturnPrompt()` | The offer to set up the way back as its own trip |
