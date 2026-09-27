@@ -377,6 +377,9 @@ html.locked, html.locked body { overflow:hidden; }
 .mini-row b { color:var(--text); font-weight:700; }
 .mini-row em { font-style:normal; color:var(--muted); font-size:11.5px; }
 .mini-row.paid b { color:var(--green); }
+.stmt-preview { background:var(--field); border-radius:22px; padding:10px; }
+.stmt-preview img { display:block; width:100%; min-height:200px; border-radius:16px; }
+.stmt-hint { display:block; width:100%; margin-top:10px; padding:11px 14px; border:none; border-radius:14px; background:var(--p-soft); color:var(--p); font:inherit; font-size:13px; font-weight:600; text-align:left; cursor:pointer; }
 .sheet-actions { margin-top:20px; }
 .draft-preview { font-size:13px; color:var(--muted2); background:var(--field); border-radius:16px; padding:12px 14px; margin-top:12px; line-height:1.5; }
 .draft-preview b { font-size:19px; font-weight:800; color:var(--text); letter-spacing:-0.02em; }
@@ -550,6 +553,9 @@ html.theme-anim body, html.theme-anim .card, html.theme-anim .fcard, html.theme-
     <div class="vrow"><label for="s-surch">Driver surcharge<small>Optional, only passengers pay it</small></label><div class="vfield"><input type="number" id="s-surch" step="0.01" min="0" inputmode="decimal" oninput="onVehicle('surcharge',this.value)" /><span>€/km</span></div></div>
     <div class="veh-example" id="veh-example"></div>
   </div>
+
+  <div class="label">Getting paid</div>
+  <div class="card" id="pay-card"></div>
 
   <div class="label">Learned distances</div>
   <div class="card">
@@ -1083,8 +1089,8 @@ function calcSplit(km) {
   const paying = all.filter(m=>(tripOverrides[m.id]||{}).cameToMe !== 'spare');
   const spared = all.filter(m=>(tripOverrides[m.id]||{}).cameToMe === 'spare');
   const total = paying.length + 1;
-  const fuel = (km/100)*(S.settings.consumption||7.5)*(S.settings.gasPrice||1.79);
-  const surch = (S.settings.surcharge||0)*km;
+  const fuel = km*fuelPerKm();   // km ÷ 100 × L/100km × €/L
+  const surch = (parseFloat(S.settings.surcharge)||0)*km;
   const perFuel = fuel/total;
   const perSurch = paying.length ? surch/paying.length : 0;
   return { all, paying, spared, total, fuel, surch, perPass: perFuel+perSurch };
@@ -1931,7 +1937,9 @@ function logTrip() {
     spared:spared.map(p=>p.name),
     dir: tripDirection,
     // the rates this trip was priced at, so editing it later doesn't reprice it
-    rates: { fuelPerKm: fuelPerKm(), surchPerKm: parseFloat(S.settings.surcharge)||0 },
+    // (consumption + gasPrice are kept too, so a statement can show the math)
+    rates: { fuelPerKm: fuelPerKm(), surchPerKm: parseFloat(S.settings.surcharge)||0,
+             consumption: parseFloat(S.settings.consumption)||7.5, gasPrice: parseFloat(S.settings.gasPrice)||1.79 },
     // everything "Same as last time" needs to rebuild this trip exactly
     setup: { crew:[...checkedIds], overrides:clone(tripOverrides), home:tripHome, club:tripClub,
              ...(tripHomeOnce && { homeOnce:tripHomeOnce }), ...(tripClubOnce && { clubOnce:tripClubOnce }) }
@@ -2079,10 +2087,10 @@ function openPerson(name) {
   const { rides, earlier } = debtBreakdown(name);
   const pays = S.payments.filter(p => p.name===name).slice(0,3);
   const status = amt>0 ? `Owes you €${amt.toFixed(2)}` : amt<0 ? `Has €${Math.abs(amt).toFixed(2)} credit` : 'All settled up';
-  const rideRows = rides.map(({t,part}) => `<div class="mini-row">
-      <span>${fmtDate(t.ts||t.id)} · ${t.km} km${t.dir ? ` · ${t.dir==='back'?'return':'outbound'}` : ''}</span>
+  const rideRows = rides.map(({t,part}) => { const m = rideMath(t); return `<div class="mini-row">
+      <span>${fmtDate(t.ts||t.id)} · ${t.km} km${t.dir ? ` · ${t.dir==='back'?'return':'outbound'}` : ''}<br><em>€${m.fuel.toFixed(2)} fuel at €${m.gasPrice.toFixed(2)}/L ÷ ${m.n+1}</em></span>
       <span><b>€${part.toFixed(2)}</b>${part < t.perPerson-0.004 ? ` <em>rest of €${t.perPerson.toFixed(2)}</em>` : ''}</span>
-    </div>`).join('');
+    </div>`; }).join('');
   const earlierRow = earlier ? `<div class="mini-row"><span>Earlier balance</span><span><b>€${earlier.toFixed(2)}</b></span></div>` : '';
   const payRows = pays.map(p => `<div class="mini-row paid"><span>${fmtDate(p.ts)}</span><span><b>+€${p.amt.toFixed(2)}</b></span></div>`).join('');
 
@@ -2092,11 +2100,12 @@ function openPerson(name) {
     ${rideRows||earlierRow ? `<div class="sheet-label">What it's for</div><div class="mini-list">${rideRows}${earlierRow}</div>` : ''}
     ${payRows ? `<div class="sheet-label">Recent payments</div><div class="mini-list">${payRows}</div>` : ''}
     <div class="sheet-actions">
-      ${amt>0 ? `<button class="btn coral full" onclick="sendRequest(sheetName)">Send payment reminder</button>` : ''}
+      ${amt>0 ? `<button class="btn coral full" onclick="openStatement(sheetName)">Send statement</button>
       <div style="display:flex; gap:8px; margin-top:8px;">
-        <button class="btn" style="flex:1;" onclick="closeSheet(); openPayModal(sheetName)">Record payment</button>
-        ${amt>0 ? `<button class="btn" style="flex:1;" onclick="copyRequest(sheetName)">Copy message</button>` : ''}
-      </div>
+        <button class="btn" style="flex:1;" onclick="sendRequest(sheetName)">Send as text</button>
+        <button class="btn" style="flex:1;" onclick="copyRequest(sheetName)">Copy text</button>
+      </div>` : ''}
+      <button class="btn full" style="margin-top:8px;" onclick="closeSheet(); openPayModal(sheetName)">Record payment</button>
     </div>
     <hr>
     <div style="display:flex; justify-content:space-between;">
@@ -2114,16 +2123,23 @@ function removeDebtEntry(name) {
 function requestText(name) {
   const amt = S.debts[name]||0;
   const { rides, earlier } = debtBreakdown(name);
-  const lines = rides.slice().reverse().map(({t,part}) =>
-    `• ${fmtDate(t.ts||t.id)} · ${t.km} km — €${part.toFixed(2)}`);
+  const lines = rides.slice().reverse().map(({t,part}) => { const m = rideMath(t);
+    return `• ${fmtDate(t.ts||t.id)} · ${t.km} km — €${part.toFixed(2)} (€${m.fuel.toFixed(2)} fuel at €${m.gasPrice.toFixed(2)}/L ÷ ${m.n+1})`; });
   if (earlier) lines.unshift(`• earlier balance — €${earlier.toFixed(2)}`);
-  return `Hey ${name.split(' ')[0]}! Carpool update: you owe €${amt.toFixed(2)} for ${rides.length} ride${rides.length===1?'':'s'}.\n\n${lines.join('\n')}\n\nThanks!`;
+  return `Hey ${name.split(' ')[0]}! Carpool update: you owe €${amt.toFixed(2)} for ${rides.length} ride${rides.length===1?'':'s'}.\n\n${lines.join('\n')}\n\n${howText(rides.map(r=>r.t))}${payText()}\n\nThanks!`;
+}
+// The pricing rule in one sentence, for text messages.
+function howText(trips) {
+  const cons = [...new Set(trips.map(t => tripBasis(t).consumption))];
+  const surch = trips.some(t => rideMath(t).surch > 0);
+  return `How it's worked out: km ÷ 100 × ${cons.length===1 ? `${cons[0]} L/100km` : "my car's fuel use"} × that day's fuel price, split between everyone paying + me (I pay a share too)`
+    + (surch ? ', plus a small per-km surcharge split between passengers.' : '.');
 }
 // One message listing everyone's balance — for the crew group chat.
 function remindAll() {
   const owing = Object.keys(S.debts).filter(n => S.debts[n] > 0).sort((a,b) => S.debts[b]-S.debts[a]);
   const lines = owing.map(n => { const r = debtBreakdown(n).rides.length; return `• ${n}: €${S.debts[n].toFixed(2)} (${r} ride${r===1?'':'s'})`; });
-  shareText(`Carpool update — open balances:\n\n${lines.join('\n')}\n\nThanks everyone!`);
+  shareText(`Carpool update — open balances:\n\n${lines.join('\n')}\n\nAsk me for your statement to see every ride and the math behind it.${payText()}\n\nThanks everyone!`);
 }
 function sendRequest(name) { shareText(requestText(name)); }
 async function shareText(text) {
@@ -2146,6 +2162,178 @@ async function copyText(t) {
     let ok = false; try { ok = document.execCommand('copy'); } catch (_) {}
     ta.remove(); return ok;
   }
+}
+
+/* ── STATEMENT ── one image per person: what they owe, every ride, the math, how to pay */
+let statementFile = null;
+async function openStatement(name) {
+  statementFile = null;
+  const pay = payLines().length;
+  openSheet(`
+    <div class="modal-title">Statement for ${esc(name)}</div>
+    <div class="modal-sub">Every ride with the km, fuel price and split — send it straight into your chat.</div>
+    <div class="stmt-preview"><img id="stmt-img" alt="Statement for ${esc(name)}" /></div>
+    ${pay ? '' : `<button class="stmt-hint" onclick="closeSheet(); editPayInfo()">Add your IBAN or PayPal so they know where to pay →</button>`}
+    <div class="sheet-actions">
+      <button class="btn coral full" onclick="shareStatement()">Share image</button>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn" style="flex:1;" onclick="saveStatement()">Save image</button>
+        <button class="btn ghost" style="flex:1;" data-name="${esc(name)}" onclick="openPerson(this.dataset.name)">Back</button>
+      </div>
+    </div>`);
+  const canvas = await drawStatement(name);
+  // Built up front so Share runs straight from the tap — iOS drops the share
+  // sheet when it has to wait for the image first.
+  canvas.toBlob(blob => {
+    statementFile = new File([blob], `carpool-${name.replace(/[^\p{L}\p{N}]+/gu,'-')}-${isoDay(new Date())}.png`, { type:'image/png' });
+    const img = document.getElementById('stmt-img');
+    if (img) img.src = URL.createObjectURL(blob);
+  }, 'image/png');
+}
+function shareStatement() {
+  const f = statementFile;
+  if (!f) { toast('One moment — still drawing it'); return; }
+  if (navigator.canShare && navigator.canShare({ files:[f] })) {
+    navigator.share({ files:[f] }).catch(e => { if (!e || e.name !== 'AbortError') saveStatement(); });
+  } else saveStatement();
+}
+function saveStatement() {
+  const f = statementFile;
+  if (!f) { toast('One moment — still drawing it'); return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(f); a.download = f.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Image saved — send it in your chat');
+}
+
+// Drawn twice: once to measure the height, once for real.
+async function drawStatement(name) {
+  try { await Promise.all(['500','600','700','800'].map(w => document.fonts.load(`${w} 30px Onest`))); } catch (e) {}
+  const canvas = document.createElement('canvas');
+  canvas.width = 1080; canvas.height = 10;
+  const h = paintStatement(canvas.getContext('2d'), name, 0);
+  canvas.height = h;
+  paintStatement(canvas.getContext('2d'), name, h);
+  return canvas;
+}
+
+function paintStatement(ctx, name, H) {
+  const c = k => getCSSVar(k);
+  const W = 1080, X0 = 100, X1 = W - 100, draw = H > 0;
+  const F = (w, px) => `${w} ${px}px Onest, system-ui, -apple-system, sans-serif`;
+  const text = (s, x, y, font, color, align='left') => {
+    ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'alphabetic';
+    if (draw) ctx.fillText(s, x, y);
+  };
+  const wrap = (s, font, maxW) => {
+    ctx.font = font;
+    const lines = []; let cur = '';
+    s.split(' ').forEach(w => {
+      const next = cur ? cur + ' ' + w : w;
+      if (cur && ctx.measureText(next).width > maxW) { lines.push(cur); cur = w; } else cur = next;
+    });
+    if (cur) lines.push(cur);
+    return lines;
+  };
+  const box = (x, y, w, h, r, color) => {
+    if (!draw) return;
+    ctx.fillStyle = color; ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+    ctx.fill();
+  };
+  const rule = (y, color=c('--line'), wd=2) => { if (draw) { ctx.fillStyle = color; ctx.fillRect(X0, y, X1-X0, wd); } };
+  const money = v => `€${v.toFixed(2)}`;
+
+  if (draw) { ctx.fillStyle = c('--bg'); ctx.fillRect(0, 0, W, H); }
+  box(40, 40, W-80, H-80, 52, c('--card'));
+
+  const amt = S.debts[name] || 0;
+  const { rides, earlier } = debtBreakdown(name);
+  const list = rides.slice().reverse();           // oldest first reads like a statement
+  const first = list[0], last = list[list.length-1];
+  let y = 140;
+
+  // Header: who, how much
+  text('CARPOOL · STATEMENT', X0, y, F(800, 24), c('--p'));
+  text(fmtDate(Date.now()), X1, y, F(500, 26), c('--muted'), 'right');
+  y += 84;  text(`Hi ${name.split(' ')[0]},`, X0, y, F(600, 40), c('--text'));
+  y += 62;  text('you owe me', X0, y, F(500, 34), c('--muted2'));
+  y += 124; text(money(amt), X0 - 4, y, F(800, 128), c('--p'));
+  y += 58;
+  const span = first ? ` · ${fmtDate(first.t.ts||first.t.id)}${list.length > 1 ? ` – ${fmtDate(last.t.ts||last.t.id)}` : ''}` : '';
+  text(`for ${rides.length} ride${rides.length===1?'':'s'}${span}`, X0, y, F(500, 30), c('--muted'));
+
+  // How a ride is priced
+  const trips = list.map(r => r.t);
+  const cons = [...new Set(trips.map(t => tripBasis(t).consumption))];
+  const surchKm = [...new Set(trips.map(t => tripBasis(t).surchPerKm).filter(v => v > 0))];
+  const rules = [
+    `Fuel = km ÷ 100 × ${cons.length===1 ? `${cons[0]} L/100km` : 'my car’s fuel use'} × the fuel price on that day.`,
+    'That fuel is split between everyone paying and me — I pay a share too.',
+    ...(trips.some(t => (t.spared||[]).length) ? ['Anyone riding free isn’t counted — I cover them.'] : []),
+    ...(surchKm.length ? [`Plus ${surchKm.length===1 ? `€${surchKm[0].toFixed(2)}/km` : 'a small per-km'} driver surcharge, split between the passengers.`] : [])
+  ];
+  const ruleWraps = rules.map(r => wrap(r, F(500, 29), X1 - X0 - 72));
+  y += 56;
+  const bh = 96 + ruleWraps.reduce((s, ls) => s + ls.length*42 + 14, -14);
+  box(X0, y, X1-X0, bh, 30, c('--p-soft'));
+  text('How each ride is priced', X0+36, y+62, F(700, 30), c('--p'));
+  let ry = y + 112;
+  ruleWraps.forEach(ls => { ls.forEach(l => { text(l, X0+36, ry, F(500, 29), c('--text')); ry += 42; }); ry += 14; });
+  y += bh + 84;
+
+  // Every ride, with its own numbers
+  text('Your rides', X0, y, F(700, 32), c('--text'));
+  text('you pay', X1, y, F(600, 26), c('--muted'), 'right');
+  y += 28; rule(y);
+  const MAX = 30, shown = list.slice(-MAX), cut = list.slice(0, list.length - shown.length);
+  const older = cut.reduce((s, r) => s + r.part, 0) + earlier;
+  if (older > 0.004) {
+    y += 64;
+    text(cut.length ? `${cut.length} earlier ride${cut.length===1?'':'s'}${earlier ? ' + older balance' : ''}` : 'Earlier balance', X0, y, F(700, 31), c('--text'));
+    text(money(older), X1, y, F(800, 32), c('--text'), 'right');
+    y += 30; rule(y);
+  }
+  shown.forEach(({ t, part }) => {
+    const m = rideMath(t);
+    const day = new Date(t.ts||t.id).toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+    y += 64;
+    text(`${day}${t.dir ? ` · ${t.dir==='back' ? 'Return' : 'Outbound'}` : ''}`, X0, y, F(700, 31), c('--text'));
+    text(money(part), X1, y, F(800, 32), c('--text'), 'right');
+    const step1 = `${t.km} km × ${+m.consumption.toFixed(2)} L/100km × €${m.gasPrice.toFixed(2)}/L = ${money(m.fuel)} fuel`;
+    const shareR = +m.share.toFixed(2);
+    const step2 = `÷ ${m.n+1} (${m.n===1 ? 'you' : `${m.n} passengers`} + me) = `
+      + (m.surch > 0.004 ? `${money(shareR)} + ${money(Math.max(0, t.perPerson - shareR))} surcharge` : money(t.perPerson))
+      + (m.free ? ` · ${m.free} rode free` : '');
+    [step1, step2].flatMap(s => wrap(s, F(500, 26), X1 - X0)).forEach(l => { y += 40; text(l, X0, y, F(500, 26), c('--muted2')); });
+    if (part < t.perPerson - 0.004) { y += 40; text(`${money(part)} still open of ${money(t.perPerson)} — the rest is already paid`, X0, y, F(600, 26), c('--amber')); }
+    y += 30; rule(y);
+  });
+
+  // Total + last payment
+  y += 74;
+  text('Total', X0, y, F(800, 36), c('--text'));
+  text(money(amt), X1, y, F(800, 44), c('--p'), 'right');
+  const lastPay = S.payments.find(p => p.name === name);
+  if (lastPay) { y += 54; text(`Last payment: ${money(lastPay.amt)} on ${fmtDate(lastPay.ts)} — thanks!`, X0, y, F(500, 26), c('--green')); }
+
+  // Where to pay
+  const pay = payLines();
+  if (pay.length) {
+    const rows = [...pay, ['Reference', `Carpool ${name}`]].map(([k, v]) => ({ k, lines: wrap(String(v), F(600, 30), X1 - X0 - 72 - (k ? 190 : 0)) }));
+    const ph = 100 + rows.reduce((s, r) => s + r.lines.length*44 + 12, 0);
+    y += 56;
+    box(X0, y, X1-X0, ph, 30, c('--field'));
+    text('How to pay', X0+36, y+62, F(700, 30), c('--text'));
+    let py = y + 110;
+    rows.forEach(r => {
+      if (r.k) text(r.k, X0+36, py, F(500, 26), c('--muted'));
+      r.lines.forEach((l, i) => text(l, X0+36 + (r.k ? 190 : 0), py + i*44, F(600, 30), c('--text')));
+      py += r.lines.length*44 + 12;
+    });
+    y += ph;
+  }
+  return y + 100;
 }
 
 /* ── LOG ── */
@@ -2217,6 +2405,20 @@ function tripRates(t) {
   let surch = n && t.km ? n*(t.perPerson - t.totalCost/(n+1)) / t.km : 0;
   surch = surch >= 0.005 ? +surch.toFixed(2) : 0;
   return { fuelPerKm: t.km ? t.totalCost/t.km : fuelPerKm(), surchPerKm: surch };
+}
+// The fuel price + consumption behind a trip, for showing the math. Trips logged
+// before these were stored only know €/km: assume today's consumption and work
+// the pump price back from it.
+function tripBasis(t) {
+  const r = tripRates(t);
+  const consumption = r.consumption || parseFloat(S.settings.consumption) || 7.5;
+  return { ...r, consumption, gasPrice: r.gasPrice || r.fuelPerKm*100/consumption };
+}
+// One ride's split, step by step: fuel → shared by the payers + driver → + surcharge.
+function rideMath(t) {
+  const b = tripBasis(t), n = t.passengers.length;
+  const fuel = t.km*b.fuelPerKm, share = fuel/(n+1);
+  return { ...b, n, fuel, share, surch: n ? b.surchPerKm*t.km/n : 0, free:(t.spared||[]).length };
 }
 // Same formula as calcSplit(), on a trip's own rates.
 function splitFor(km, nPaying, rates) {
@@ -2528,6 +2730,13 @@ function renderSettings() {
     ...(S.settings.clubAddrs||[]).map(c => place('club', c.label, c.addr, `editAltAddr('club',${c.id})`, 'Destination'))
   ].join('');
 
+  const pay = payLines();
+  document.getElementById('pay-card').innerHTML = `<button class="srow tap" onclick="editPayInfo()">
+      <div class="t">${pay.length
+        ? `<b>How people pay you</b><small>${esc(pay.map(([k,v]) => `${k} ${v}`).join(' · '))}</small>`
+        : `<b class="missing">Add your IBAN or PayPal</b><small>Shown on every statement and reminder you send</small>`}</div>${CHEV}
+    </button>`;
+
   renderBackupSub();
 
   const learned = Object.keys(S.routeMemory||{}).length;
@@ -2550,6 +2759,32 @@ function renderVehicleExample() {
   const km = 30, fuel = km * fuelPerKm(), sur = (parseFloat(S.settings.surcharge)||0) * km;
   document.getElementById('veh-example').textContent =
     `A ${km} km trip costs €${fuel.toFixed(2)} in fuel` + (sur ? ` · passengers also pay €${sur.toFixed(2)} surcharge` : '');
+}
+
+/* Getting paid: IBAN / PayPal shown on statements and reminders */
+function payInfo() { return S.settings.pay || {}; }
+function payLines() {
+  const p = payInfo();
+  return [['Name', p.holder], ['IBAN', p.iban], ['PayPal', p.paypal], ['', p.note]].filter(([,v]) => v);
+}
+function payText() {
+  const lines = payLines();
+  return lines.length ? `\n\nYou can pay me here:\n${lines.map(([k,v]) => k ? `${k}: ${v}` : v).join('\n')}` : '';
+}
+function editPayInfo() {
+  const p = payInfo();
+  formSheet({
+    title: 'How people pay you', sub: 'Shown on every statement and reminder. Leave out what you don’t use.',
+    fields: [
+      { label:'Account holder', value:p.holder||'', placeholder:'Your name, as on the account' },
+      { label:'IBAN', value:p.iban||'', placeholder:'e.g. DE12 3456 7890 1234 5678 90' },
+      { label:'PayPal (email or paypal.me link)', value:p.paypal||'', placeholder:'e.g. paypal.me/jan' },
+      { label:'Anything else (optional)', value:p.note||'', placeholder:'e.g. or cash at practice' }
+    ],
+    save: ([holder, iban, paypal, note]) => {
+      withUndo('Payment details saved', () => { S.settings.pay = { holder, iban, paypal, note }; });
+    }
+  });
 }
 
 function openAddMember() {
@@ -3025,12 +3260,16 @@ function demoData() {
   const settings = { homeAddr:'Hohenzollernstr. 15, Saarbrücken', clubAddr:'Sporthalle Rastbachtal, Saarbrücken',
     consumption:6.8, gasPrice:1.84, surcharge:0.02, theme:(S.settings.theme||'dark'),
     homeAddrs:[{ id:201, label:"Parents' place", addr:'Am Staden 3, Saarbrücken' }],
-    clubAddrs:[{ id:301, label:'Away hall', addr:'Saarlandhalle, Saarbrücken' }] };
-  const rates = { fuelPerKm: settings.consumption*settings.gasPrice/100, surchPerKm: settings.surcharge };
+    clubAddrs:[{ id:301, label:'Away hall', addr:'Saarlandhalle, Saarbrücken' }],
+    pay:{ holder:'Jan Beispiel', iban:'DE89 3704 0044 0532 0130 00', paypal:'jan.beispiel@example.com', note:'' } };
+  // The pump price moves week to week, so the statement shows prices changing.
+  const PRICES = [1.84, 1.79, 1.82, 1.76, 1.81, 1.87, 1.85, 1.79, 1.74, 1.78, 1.83];
   const trips = [], payments = [], debts = {};
   members.forEach(m => debts[m.name] = 0);
   let id = 1;
   const addTrip = (ts, dir, crew, spareIds, away) => {
+    const gasPrice = PRICES[Math.floor((Date.now()-ts)/(7*86400000)) % PRICES.length];
+    const rates = { fuelPerKm: settings.consumption*gasPrice/100, surchPerKm: settings.surcharge, consumption: settings.consumption, gasPrice };
     const paying = crew.filter(i => !spareIds.includes(i)).map(i => members.find(m=>m.id===i).name);
     const spared = spareIds.map(i => members.find(m=>m.id===i).name);
     const km = +((away ? 27 : 12) + 2.8*(crew.length - spareIds.length) + rnd()*1.5).toFixed(1);

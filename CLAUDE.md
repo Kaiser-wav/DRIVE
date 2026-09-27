@@ -39,7 +39,8 @@ S = {
     dir: 'there'|'back',    // which leg (absent on trips logged before this existed)
     ts: number,             // epoch ms — hydrate() backfills it from `id` on old trips
     setup: { crew: number[], overrides: tripOverrides, home, club, homeOnce?, clubOnce? }, // for "Same as last time"
-    rates: { fuelPerKm: number, surchPerKm: number }  // priced-at rates; tripRates() derives them for old trips
+    rates: { fuelPerKm: number, surchPerKm: number, consumption?: number, gasPrice?: number }
+      // priced-at rates; tripRates() derives them for old trips, tripBasis() works back L/100km + €/L
   }],
   payments: [{ id: number, ts: number, name: string, amt: number }],  // newest first
   debts: { [name: string]: number },  // positive = owes you, negative = credit
@@ -49,7 +50,8 @@ S = {
     consumption: number,   // L/100km
     gasPrice: number,      // €/L
     surcharge: number,     // €/km extra charged to passengers only
-    lastBackup: number     // epoch ms of the last exported backup
+    lastBackup: number,    // epoch ms of the last exported backup
+    pay: { holder, iban, paypal, note }  // "Getting paid" — shown on statements + reminders
   },
   presets: [{ id: number, name: string, km: number }],
 
@@ -243,6 +245,9 @@ spared people = ride free, not counted in total_people
 | `toggleMember(id)` | Crew chip tap = in/out of the car; the chip's ⋯ opens `openChipModal()` |
 | `tripDate` / `renderDatePill()` / `onTripDate()` | Session-only: log a trip on a past day (skips Maps) |
 | `openPerson(name)` / `debtBreakdown(name)` | Debt detail: which rides make up the balance (payments settle oldest first) |
+| `openStatement(name)` / `drawStatement(name)` / `paintStatement()` | Per-person statement PNG (canvas): amount, every unpaid ride with km × L/100km × €/L ÷ people, pricing rules, how to pay. Share via share sheet, else download |
+| `tripBasis(t)` / `rideMath(t)` | A trip's consumption + fuel price / its split step by step — used by statement, person sheet and reminder text |
+| `payLines()` / `payText()` / `editPayInfo()` | Payment details (IBAN, PayPal…) from `settings.pay` |
 | `sendRequest(name)` / `copyRequest(name)` | Payment reminder via share sheet → WhatsApp link fallback / clipboard |
 | `editTrip()` / `saveTripEdit()` / `editPayment()` / `editMember()` / `editPreset()` / `editAltAddr()` | Edit sheets — every list row in Log and Settings is tappable |
 | `renameEverywhere(from,to)` | Moves debts, trips and payments to a member's new name |
